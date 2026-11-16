@@ -1289,6 +1289,30 @@ body .setrow[data-act="restore"]{ display:none !important; }
   .ljc-banner .ljc-b-x{ color: #86efac; }
 }
 
+/* ===== 타임머신 스냅샷 · 구글 시트 동기화 ===== */
+.x-inline{ display:flex; gap:8px; align-items:center; margin:8px 0 4px; }
+.x-inline .input{ flex:1 1 auto; min-width:0; font-size:14px; }
+.x-inline .btn{ flex:none; white-space:nowrap; }
+.x-list{ display:flex; flex-direction:column; gap:7px; margin-top:8px; }
+.x-none{ margin:6px 0 2px; font-size:11.5px; line-height:1.55; color:var(--sub); }
+.x-snap{
+  display:flex; gap:9px; align-items:center; justify-content:space-between;
+  border:1px solid var(--line-2); border-radius:12px; background:var(--card); padding:9px 11px;
+}
+.x-snap-info{ min-width:0; display:flex; flex-direction:column; gap:2px; }
+.x-snap-info b{ font-size:13px; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.x-snap-info span{ font-size:11px; color:var(--sub); }
+.x-snap-info span b{ display:inline; font-size:11px; }
+.x-snap-acts{ display:flex; gap:5px; flex:none; }
+.x-snap-acts .btn{ min-height:32px; padding:4px 9px; font-size:12px; }
+.x-status{ margin:9px 0 0; font-size:11.5px; line-height:1.5; color:var(--sub); word-break:break-word; }
+.x-status.ok{ color:#15803d; }
+.x-status.err{ color:#b91c1c; }
+@media (prefers-color-scheme: dark){
+  .x-status.ok{ color:#86efac; }
+  .x-status.err{ color:#f87171; }
+}
+
 </style>
 </head>
 <body>
@@ -2450,6 +2474,7 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       '<span class="st2"><b>JSON 내보내기</b><i>편집·완료 표시까지 파일로 저장</i></span><span class="chev">›</span></button>' +
       '<button type="button" class="setrow" data-act="import"><span class="si">⬆️</span>' +
       '<span class="st2"><b>JSON 불러오기</b><i>백업 파일을 합치거나 통째로 바꿉니다</i></span><span class="chev">›</span></button>' +
+      (window.__ljcX ? window.__ljcX.settingsHtml() : '') +
       '<button type="button" class="setrow" data-act="restore"><span class="si">↺</span>' +
       '<span class="st2"><b>초기 캘린더 데이터로 복원</b><i>구글에서 가져온 ' + INITIAL.events.length + '개 원본으로 되돌립니다</i></span><span class="chev">›</span></button>' +
       '<p class="hint" style="margin-top:10px">모든 변경은 이 기기의 브라우저 저장소(localStorage·IndexedDB)에 저장됩니다. 내보낸 JSON 파일은 백업용으로 보관하거나, 다른 기기·브라우저에서 ‘JSON 불러오기’로 되살릴 수 있어요.</p>' +
@@ -2999,6 +3024,12 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     shiftDate: shiftDate,
     exportJson: exportJson,
     importJson: importJson,
+    chooseImport: chooseImport,
+    commit: commit,
+    normalize: normalize,
+    saveState: saveState,
+    toast: toast,
+    askConfirm: askConfirm,
     visibleEvents: visibleEvents,
     todayYmd: todayYmd,
     INITIAL: INITIAL
@@ -3063,6 +3094,342 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
   setTimeout(sync, 0);
   setTimeout(sync, 600);
   sync();
+})();
+
+</script>
+<script>
+/* 공개 배포용 껍데기(shell) 확장 기능
+   1) 타임머신 스냅샷 — 지금 상태(기록·완료 표시)를 이 기기에 통째로 저장, 최근 5개, 복원/삭제
+   2) 구글 시트 클라우드 동기화 — Apps Script 웹 앱 주소로 저장/불러오기
+   모든 데이터는 이 기기 또는 사용자가 지정한 본인 구글 시트로만 갑니다. 앱이 다른 곳으로 보내지 않습니다. */
+(function () {
+  'use strict';
+  var L = window.__ljc;
+  if (!L) return;
+
+  var SNAP_KEY = 'ljc_snaps_v1';
+  var URL_KEY = 'ljc_sheet_url';
+  var LAST_KEY = 'ljc_sheet_last';
+  var MAX_SNAPS = 5;
+  var MAX_CHARS = 4000000;   // localStorage 한도(≈5MB) 안에서 안전하게
+
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+
+  function $(s, r) { return (r || document).querySelector(s); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function toast(m, undo) { if (L.toast) L.toast(m, undo); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtAt(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso || '');
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' (' + DOW[d.getDay()] + ') ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function validYmd(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return false;
+    var p = String(s).split('-');
+    var d = new Date(+p[0], +p[1] - 1, +p[2], 12);
+    return !isNaN(d.getTime()) && d.getFullYear() === +p[0] && d.getMonth() + 1 === +p[1] && d.getDate() === +p[2];
+  }
+
+  /* ------------------------------------------------ snapshots (localStorage) */
+  function readSnaps() {
+    try {
+      var a = JSON.parse(localStorage.getItem(SNAP_KEY) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function totalChars(list) {
+    var n = 0;
+    for (var i = 0; i < list.length; i++) n += (list[i]._len || 0);
+    return n;
+  }
+  function writeSnaps(list) {
+    // _len 은 저장하지 않는다(용량 계산용 임시값)
+    var plain = list.map(function (s) {
+      var o = {};
+      for (var k in s) if (k !== '_len') o[k] = s[k];
+      return o;
+    });
+    localStorage.setItem(SNAP_KEY, JSON.stringify(plain));
+  }
+  function measured(list) {
+    return list.map(function (s) {
+      var o = {};
+      for (var k in s) o[k] = s[k];
+      try { o._len = JSON.stringify(o).length; } catch (e) { o._len = 0; }
+      return o;
+    });
+  }
+  function counts(events) {
+    var done = 0;
+    (events || []).forEach(function (e) { if (e && e.done) done++; });
+    return { n: (events || []).length, done: done };
+  }
+
+  function saveSnapshot() {
+    var ev = (L.state && L.state.events) || [];
+    if (!ev.length) { toast('저장할 기록이 없습니다'); return; }
+    var nameEl = $('#ljcSnapName');
+    var label = (nameEl && nameEl.value || '').trim();
+    var at = new Date().toISOString();
+    var c = counts(ev);
+    var snap = {
+      v: 1,
+      id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      at: at,
+      label: label || (fmtAt(at) + ' 시점'),
+      count: c.n,
+      done: c.done,
+      events: JSON.parse(JSON.stringify(ev))
+    };
+
+    var list = measured(readSnaps());
+    list.unshift(measured([snap])[0]);
+    if (list.length > MAX_SNAPS) list = list.slice(0, MAX_SNAPS);
+
+    var dropped = 0;
+    while (list.length) {
+      if (totalChars(list) > MAX_CHARS && list.length > 1) { list.pop(); dropped++; continue; }
+      try { writeSnaps(list); break; }
+      catch (err) {
+        if (list.length > 1) { list.pop(); dropped++; continue; }
+        toast('이 브라우저의 저장 공간이 부족해 스냅샷을 저장하지 못했습니다. (설정 → JSON 내보내기로 백업하세요)');
+        return;
+      }
+    }
+    if (nameEl) nameEl.value = '';
+    renderSnapList();
+    toast(dropped
+      ? '스냅샷을 저장했습니다. 공간이 부족해 오래된 ' + dropped + '개를 정리했습니다 (' + c.n + '개 기록)'
+      : '스냅샷을 저장했습니다 (' + c.n + '개 기록)');
+  }
+
+  function restoreSnapshot(id) {
+    var snap = readSnaps().filter(function (s) { return s.id === id; })[0];
+    if (!snap) { toast('스냅샷을 찾지 못했습니다'); return; }
+    if (!L.askConfirm) return;
+    L.askConfirm('이 시점으로 되돌리기',
+      snap.label + ' · 기록 ' + snap.count + '개의 상태로 돌아갑니다. 지금 편집한 내용은 사라지지만, 되돌리기(실행 취소)를 누르면 복구됩니다.',
+      '복원', function () {
+        var before = (L.state.events || []).slice();
+        L.state.events = (snap.events || []).map(L.normalize);
+        L.commit();
+        toast(snap.count + '개 기록으로 되돌렸습니다', function () {
+          L.state.events = before;
+          L.commit();
+        });
+        closeSettings();
+      }, true);
+  }
+
+  function deleteSnapshot(id) {
+    var snap = readSnaps().filter(function (s) { return s.id === id; })[0];
+    if (!snap) return;
+    var list = readSnaps().filter(function (s) { return s.id !== id; });
+    try { writeSnaps(measured(list)); } catch (e) {}
+    renderSnapList();
+    toast('스냅샷을 삭제했습니다');
+  }
+
+  function snapListHtml() {
+    var list = readSnaps();
+    if (!list.length) {
+      return '<p class="x-none">아직 저장한 스냅샷이 없습니다. 큰 정리(연도 배치·되돌리기 많은 날) 전에 한 번씩 저장해 두세요.</p>';
+    }
+    return list.map(function (s) {
+      return '<div class="x-snap">' +
+        '<div class="x-snap-info">' +
+        '<b>' + esc(s.label || fmtAt(s.at)) + '</b>' +
+        '<span>' + esc(fmtAt(s.at)) + ' · 기록 <b>' + (s.count || (s.events || []).length) + '</b>개 · 완료 <b>' + (s.done || 0) + '</b>개</span>' +
+        '</div>' +
+        '<div class="x-snap-acts">' +
+        '<button type="button" class="btn sm ghost" data-x="snapRestore" data-id="' + esc(s.id) + '">복원</button>' +
+        '<button type="button" class="btn sm danger" data-x="snapDelete" data-id="' + esc(s.id) + '">삭제</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderSnapList() {
+    var box = $('#ljcSnapList');
+    if (box) box.innerHTML = snapListHtml();
+  }
+
+  function closeSettings() {
+    var box = $('#ljcSnapList');
+    var sheet = box && box.closest ? box.closest('.sheet') : null;
+    var x = sheet && sheet.querySelector('[data-act="close"]');
+    if (x) x.click();
+  }
+
+  /* ------------------------------------------------ google sheets sync */
+  function getUrl() {
+    var el = $('#ljcSheetUrl');
+    var v = el ? el.value.trim() : '';
+    if (!v) { try { v = localStorage.getItem(URL_KEY) || ''; } catch (e) { v = ''; } }
+    return v;
+  }
+  function setStatus(msg, kind) {
+    var el = $('#ljcSheetStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'x-status' + (kind ? ' ' + kind : '');
+  }
+  function lastSyncText() {
+    var v = '';
+    try { v = localStorage.getItem(LAST_KEY) || ''; } catch (e) {}
+    return v ? '마지막 백업: ' + fmtAt(v) : '아직 백업하지 않았습니다.';
+  }
+  function checkUrl(url) {
+    if (!url) { setStatus('Apps Script 웹 앱 주소를 먼저 붙여 넣으세요.', 'err'); return false; }
+    if (!/^https?:\/\//i.test(url)) {
+      setStatus('http:// 또는 https:// 로 시작하는 주소를 넣으세요. (Apps Script 는 https://script.google.com/macros/s/…/exec)', 'err');
+      return false;
+    }
+    var isLocal = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(url);
+    if (!/^https:\/\//i.test(url) && !isLocal) {
+      setStatus('https 주소가 아닙니다. Apps Script 웹 앱 주소는 https://script.google.com/…/exec 입니다.', 'err');
+      return false;
+    }
+    return true;
+  }
+  function callSheet(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    }).then(function (t) {
+      var d;
+      try { d = JSON.parse(t); } catch (e) {
+        throw new Error('응답을 읽지 못했습니다. 배포 주소(/exec)와 액세스 권한(모든 사용자)을 확인하세요.');
+      }
+      if (d && d.ok === false) throw new Error(d.error || '시트 쪽에서 거부했습니다.');
+      return d;
+    });
+  }
+  function busy(on) {
+    ['sheetSave', 'sheetLoad'].forEach(function (a) {
+      var b = document.querySelector('[data-x="' + a + '"]');
+      if (b) b.disabled = !!on;
+    });
+  }
+
+  function sheetSave() {
+    var url = getUrl();
+    if (!checkUrl(url)) return;
+    try { localStorage.setItem(URL_KEY, url); } catch (e) {}
+    var ev = (L.state && L.state.events) || [];
+    if (!ev.length) { setStatus('이 기기에 기록이 없어 백업할 내용이 없습니다.', 'err'); return; }
+    var c = counts(ev);
+    busy(true);
+    setStatus('시트로 저장하는 중… (' + c.n + '개)');
+    callSheet(url, {
+      action: 'save',
+      app: '이종대왕 달력',
+      version: 1,
+      calendar: '이종대왕 달력',
+      savedAt: new Date().toISOString(),
+      count: c.n,
+      events: ev
+    }).then(function (d) {
+      var at = d.updatedAt || d.savedAt || new Date().toISOString();
+      try { localStorage.setItem(LAST_KEY, at); } catch (e) {}
+      setStatus('마지막 백업: ' + fmtAt(at) + (d.count ? ' · 시트 ' + d.count + '개' : ''), 'ok');
+      toast('구글 시트에 저장했습니다 (' + (d.count || c.n) + '개)' + (d.sheetUrl ? '' : ''));
+      busy(false);
+    }).catch(function (err) {
+      var m = (err && err.message) ? err.message : '알 수 없는 오류';
+      var hint = /Failed to fetch|NetworkError|Load failed|Network request failed/i.test(m)
+        ? ' — 주소가 정확한지, 배포 액세스가 "모든 사용자"인지 확인하세요.' : '';
+      setStatus('저장 실패: ' + m + hint, 'err');
+      toast('구글 시트 저장에 실패했습니다');
+      busy(false);
+    });
+  }
+
+  function sheetLoad() {
+    var url = getUrl();
+    if (!checkUrl(url)) return;
+    try { localStorage.setItem(URL_KEY, url); } catch (e) {}
+    busy(true);
+    setStatus('시트에서 불러오는 중…');
+    callSheet(url, { action: 'load' }).then(function (d) {
+      var arr = d && (d.events instanceof Array ? d.events : null);
+      if (!arr) throw new Error('시트 응답에 events 가 없습니다.');
+      var clean = arr.filter(function (e) { return e && validYmd(e.date); });
+      busy(false);
+      if (!clean.length) { setStatus('시트에 저장된 기록이 없습니다.', 'err'); return; }
+      if (d.savedAt) { try { localStorage.setItem(LAST_KEY, d.savedAt); } catch (e) {} }
+      setStatus('시트에서 ' + clean.length + '개를 가져왔습니다. 합치기/교체를 고르세요.', 'ok');
+      closeSettings();
+      if (L.chooseImport) L.chooseImport(clean);
+    }).catch(function (err) {
+      var m = (err && err.message) ? err.message : '알 수 없는 오류';
+      var hint = /Failed to fetch|NetworkError|Load failed|Network request failed/i.test(m)
+        ? ' — 주소가 정확한지, 배포 액세스가 "모든 사용자"인지 확인하세요.' : '';
+      setStatus('불러오기 실패: ' + m + hint, 'err');
+      toast('구글 시트에서 불러오지 못했습니다');
+      busy(false);
+    });
+  }
+
+  /* ------------------------------------------------ settings block */
+  function settingsHtml() {
+    var url = '';
+    try { url = localStorage.getItem(URL_KEY) || ''; } catch (e) {}
+    return '' +
+      '<div class="seclabel">타임머신 스냅샷 <span class="cnt">최근 ' + MAX_SNAPS + '개</span></div>' +
+      '<p class="hint" style="margin-top:0">지금 상태(기록·완료 표시)를 통째로 이 기기에 저장합니다. 연도 배치나 큰 정리 전에 한 번 저장해 두면 그 시점으로 되돌릴 수 있어요.</p>' +
+      '<div class="x-inline">' +
+      '<input class="input" id="ljcSnapName" type="text" placeholder="이름 (선택, 예: 11월 마무리)" autocomplete="off" aria-label="스냅샷 이름">' +
+      '<button type="button" class="btn primary sm" data-x="snapSave">지금 이 순간 상태 저장</button>' +
+      '</div>' +
+      '<div id="ljcSnapList" class="x-list">' + snapListHtml() + '</div>' +
+
+      '<div class="seclabel">구글 시트 클라우드 동기화</div>' +
+      '<p class="hint" style="margin-top:0">구글 시트에 백업하면 휴대폰을 바꾸거나 브라우저 데이터를 지워도 기록이 남고, 시트에서 직접 열어 볼 수도 있습니다. 구글 시트 → 확장 프로그램 → Apps Script 에 <b>Code.gs</b>를 붙여 넣고 웹 앱으로 배포한 뒤, 그 주소를 아래에 넣으세요.</p>' +
+      '<input class="input" id="ljcSheetUrl" type="url" inputmode="url" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(url) + '" aria-label="Apps Script 웹 앱 주소">' +
+      '<div class="x-inline" style="margin-top:8px">' +
+      '<button type="button" class="btn soft sm" data-x="sheetSave">시트로 저장 (백업)</button>' +
+      '<button type="button" class="btn ghost sm" data-x="sheetLoad">시트에서 불러오기</button>' +
+      '</div>' +
+      '<p class="x-status" id="ljcSheetStatus">' + esc(lastSyncText()) + '</p>';
+  }
+
+  /* ------------------------------------------------ wiring */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-x]');
+    if (!b) return;
+    var act = b.getAttribute('data-x');
+    if (act === 'snapSave') { e.preventDefault(); saveSnapshot(); }
+    else if (act === 'snapRestore') { e.preventDefault(); restoreSnapshot(b.getAttribute('data-id')); }
+    else if (act === 'snapDelete') { e.preventDefault(); deleteSnapshot(b.getAttribute('data-id')); }
+    else if (act === 'sheetSave') { e.preventDefault(); sheetSave(); }
+    else if (act === 'sheetLoad') { e.preventDefault(); sheetLoad(); }
+  });
+
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t && t.id === 'ljcSheetUrl') {
+      try { localStorage.setItem(URL_KEY, t.value.trim()); } catch (err) {}
+    }
+  });
+
+  window.__ljcX = {
+    settingsHtml: settingsHtml,
+    saveSnapshot: saveSnapshot,
+    restoreSnapshot: restoreSnapshot,
+    sheetSave: sheetSave,
+    sheetLoad: sheetLoad,
+    readSnaps: readSnaps
+  };
 })();
 
 </script>
