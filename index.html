@@ -33,10 +33,14 @@
   --card: #ffffff;
   --ink: #111827;
   --ink-2: #374151;
-  --sub: #6b7280;
-  --line: #e3e7e2;
+  --sub: #5b6473;
+  --line: #dbe1da;
   --line-2: #edf0ec;
-  --tagbg: rgba(255, 255, 255, .78);
+  --tagbg: rgba(255, 255, 255, .82);
+  --pill-bg: #eef8f2;
+  --pill-ink: #101828;
+  --pill-bar: #16a34a;
+  --desc-bg: #f8faf9;
   --sun: #dc2626;
   --sat: #2563eb;
   --star: #e08c00;
@@ -58,10 +62,14 @@
     --card: #161a17;
     --ink: #f1f5f1;
     --ink-2: #cfd6d0;
-    --sub: #98a29a;
-    --line: #2a302b;
-    --line-2: #202521;
-    --tagbg: rgba(255, 255, 255, .09);
+    --sub: #aab4ab;
+    --line: #2f362f;
+    --line-2: #232823;
+    --tagbg: rgba(255, 255, 255, .1);
+    --pill-bg: #1b2a20;
+    --pill-ink: #f3f4f6;
+    --pill-bar: #22c55e;
+    --desc-bg: #121714;
     --sun: #f87171;
     --sat: #7ea8ff;
     --star: #fbbf24;
@@ -85,8 +93,8 @@ body {
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
     "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.62;
   -webkit-tap-highlight-color: transparent;
   overflow-wrap: break-word;
 }
@@ -98,9 +106,9 @@ button { font: inherit; color: inherit; }
 h1, h2, h3, p { margin: 0; }
 
 .app {
-  max-width: 1060px;
+  max-width: 1140px;
   margin: 0 auto;
-  padding: 0 12px calc(96px + env(safe-area-inset-bottom));
+  padding: 0 14px calc(96px + env(safe-area-inset-bottom));
 }
 
 /* ---------- head ---------- */
@@ -109,7 +117,7 @@ h1, h2, h3, p { margin: 0; }
   top: 0;
   z-index: 30;
   background: var(--bg);
-  padding: 10px 2px 8px;
+  padding: 12px 2px 9px;
   border-bottom: 1px solid var(--line-2);
 }
 
@@ -135,7 +143,7 @@ h1, h2, h3, p { margin: 0; }
 .brand-txt { min-width: 0; }
 
 .brand-txt h1 {
-  font-size: 16.5px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: -.02em;
   white-space: nowrap;
@@ -144,7 +152,7 @@ h1, h2, h3, p { margin: 0; }
 }
 
 .brand-sub {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--sub);
   white-space: nowrap;
   overflow: hidden;
@@ -168,8 +176,8 @@ h1, h2, h3, p { margin: 0; }
   border: 0;
   background: none;
   border-radius: 8px;
-  padding: 6px 11px;
-  font-size: 12.5px;
+  padding: 7px 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--sub);
   cursor: pointer;
@@ -228,9 +236,9 @@ h1, h2, h3, p { margin: 0; }
 
 .nav-title {
   border: 0; background: none;
-  padding: 5px 4px;
-  min-width: 96px;
-  font-size: 14.5px;
+  padding: 6px 4px;
+  min-width: 108px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: -.01em;
   color: var(--ink);
@@ -245,8 +253,8 @@ h1, h2, h3, p { margin: 0; }
   border: 1px solid var(--line);
   background: var(--card);
   border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 12.5px;
+  padding: 9px 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ink-2);
   cursor: pointer;
@@ -262,8 +270,8 @@ h1, h2, h3, p { margin: 0; }
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 0 9px;
-  height: 36px;
+  padding: 0 11px;
+  height: 40px;
   box-shadow: var(--shadow-sm);
 }
 
@@ -275,7 +283,7 @@ h1, h2, h3, p { margin: 0; }
   border: 0;
   background: none;
   outline: none;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink);
   font-family: inherit;
   height: 100%;
@@ -310,8 +318,8 @@ h1, h2, h3, p { margin: 0; }
   background: var(--card);
   color: var(--ink-2);
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 12.5px;
+  padding: 7px 13px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -325,7 +333,7 @@ h1, h2, h3, p { margin: 0; }
 }
 
 .chip .n {
-  font-size: 10.5px;
+  font-size: 11.5px;
   opacity: .6;
   margin-left: 3px;
   font-weight: 700;
@@ -337,8 +345,8 @@ h1, h2, h3, p { margin: 0; }
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 4px 2px 8px;
-  font-size: 12px;
+  padding: 6px 2px 10px;
+  font-size: 13px;
   color: var(--sub);
 }
 
@@ -348,9 +356,9 @@ h1, h2, h3, p { margin: 0; }
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--sub);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 4px 9px;
+  padding: 6px 11px;
   border-radius: 999px;
   cursor: pointer;
   flex: none;
@@ -366,10 +374,10 @@ h1, h2, h3, p { margin: 0; }
 .dowbar {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-  padding-bottom: 5px;
-  font-size: 11.5px;
-  font-weight: 700;
+  gap: 6px;
+  padding-bottom: 7px;
+  font-size: 12.5px;
+  font-weight: 800;
   color: var(--sub);
   text-align: center;
 }
@@ -380,18 +388,18 @@ h1, h2, h3, p { margin: 0; }
 .grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
+  gap: 6px;
 }
 
 .cell {
-  min-height: 110px;
+  min-height: 138px;
   background: var(--card);
   border: 1px solid var(--line-2);
-  border-radius: 11px;
-  padding: 4px 4px 3px;
+  border-radius: 13px;
+  padding: 7px 6px 6px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   overflow: hidden;
   position: relative;
   transition: background .12s, border-color .12s;
@@ -404,12 +412,12 @@ h1, h2, h3, p { margin: 0; }
 
 .dnum {
   align-self: flex-start;
-  min-width: 19px;
-  height: 19px;
-  padding: 0 4px;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 5px;
   border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 800;
   color: var(--ink-2);
   display: inline-flex;
   align-items: center;
@@ -420,55 +428,57 @@ h1, h2, h3, p { margin: 0; }
 .cell.sat .dnum { color: var(--sat); }
 .cell.today .dnum { background: var(--accent); color: #fff; }
 
-.pills { display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1; }
+.pills { display: flex; flex-direction: column; gap: 3px; overflow: hidden; flex: 1; }
 
 .pill {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   width: 100%;
   min-width: 0;
   text-align: left;
   border: 0;
-  border-left: 2.5px solid var(--accent);
-  border-radius: 5px;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  font-size: 10.8px;
-  line-height: 1.3;
-  padding: 2.5px 4px;
+  border-left: 3px solid var(--pill-bar);
+  border-radius: 6px;
+  background: var(--pill-bg);
+  color: var(--pill-ink);
+  font-size: 12.4px;
+  line-height: 1.32;
+  padding: 3.5px 6px;
   cursor: pointer;
-  transition: filter .1s, opacity .1s;
+  transition: filter .1s, opacity .1s, box-shadow .12s;
 }
 
-.pill:hover { filter: brightness(.97); }
+.pill:hover { filter: brightness(.965); box-shadow: var(--shadow-sm); }
 .pill.dragging { opacity: .35; }
-.pill .tt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
-.pill .st { flex: none; font-size: 8.5px; color: var(--star); }
+.pill .tt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; word-break: keep-all; }
+.pill .st { flex: none; font-size: 10px; color: var(--star); line-height: 1; }
 .pill .tag {
+  display: none;
   flex: none;
-  max-width: 44px;
+  max-width: 58px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 8.5px;
-  font-weight: 700;
-  padding: 0 3px;
-  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
   background: var(--tagbg);
+  color: var(--accent-ink);
 }
 .pill .fxb {
   flex: none;
-  font-size: 7.5px;
+  font-size: 8.5px;
   font-weight: 800;
   letter-spacing: .02em;
-  padding: 0 2px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, .55);
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .8);
   color: var(--accent-ink);
 }
 
-@media (prefers-color-scheme: dark) { .pill .fxb { background: rgba(255, 255, 255, .1); } }
+@media (prefers-color-scheme: dark) { .pill .fxb { background: rgba(255, 255, 255, .12); } }
 
 .pill.done {
   background: var(--done-soft);
@@ -480,13 +490,13 @@ h1, h2, h3, p { margin: 0; }
 
 .pill .pchk {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 4px;
-  border: 1.2px solid currentColor;
+  border: 1.3px solid currentColor;
   display: grid;
   place-items: center;
-  font-size: 7.5px;
+  font-size: 8.5px;
   line-height: 1;
   opacity: 0;
   transition: opacity .1s, background .1s;
@@ -497,13 +507,13 @@ h1, h2, h3, p { margin: 0; }
 
 .more {
   border: 0;
-  background: none;
-  color: var(--sub);
-  font-size: 10px;
-  font-weight: 700;
+  background: var(--line-2);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 800;
   text-align: left;
-  padding: 0 3px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
   cursor: pointer;
   flex: none;
 }
@@ -525,51 +535,52 @@ h1, h2, h3, p { margin: 0; }
 .month-head {
   display: flex;
   align-items: baseline;
-  gap: 7px;
-  padding: 4px 3px 7px;
-  font-size: 13px;
+  gap: 8px;
+  padding: 8px 3px 9px;
+  font-size: 14.5px;
   font-weight: 800;
   color: var(--ink);
 }
 
-.month-head span { font-size: 11.5px; font-weight: 600; color: var(--sub); }
+.month-head span { font-size: 12.5px; font-weight: 600; color: var(--sub); }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: var(--card);
   border: 1px solid var(--line-2);
-  border-radius: 12px;
-  padding: 8px 11px;
-  margin-bottom: 5px;
+  border-radius: 13px;
+  padding: 11px 13px;
+  margin-bottom: 7px;
   cursor: pointer;
-  transition: border-color .12s;
+  transition: border-color .12s, box-shadow .12s;
 }
 
-.row:hover { border-color: var(--line); }
+.row:hover { border-color: var(--line); box-shadow: var(--shadow-sm); }
 
 .row .date {
   flex: none;
-  width: 42px;
+  width: 46px;
   text-align: center;
-  line-height: 1.1;
-  font-size: 10.5px;
+  line-height: 1.15;
+  font-size: 11px;
   color: var(--sub);
   font-weight: 600;
 }
 
-.row .date b { display: block; font-size: 16px; font-weight: 800; color: var(--ink-2); letter-spacing: -.03em; line-height: 1.1; }
-.row .date span { display: block; font-size: 9.5px; font-weight: 600; color: var(--sub); margin-top: 2px; white-space: nowrap; }
+.row .date b { display: block; font-size: 18px; font-weight: 800; color: var(--ink-2); letter-spacing: -.03em; line-height: 1.1; }
+.row .date span { display: block; font-size: 10.5px; font-weight: 600; color: var(--sub); margin-top: 2px; white-space: nowrap; }
 .row.sun .date b { color: var(--sun); }
 .row.sat .date b { color: var(--sat); }
 
 .row .mid { flex: 1; min-width: 0; }
 
 .row .title {
-  font-size: 13.8px;
-  font-weight: 650;
+  font-size: 15.5px;
+  font-weight: 700;
   letter-spacing: -.01em;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -581,10 +592,10 @@ h1, h2, h3, p { margin: 0; }
 .row .meta {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 2px;
-  font-size: 10.5px;
+  margin-top: 3px;
+  font-size: 12px;
   color: var(--sub);
 }
 
@@ -594,13 +605,13 @@ h1, h2, h3, p { margin: 0; }
 
 .chk {
   flex: none;
-  width: 27px; height: 27px;
-  border-radius: 9px;
+  width: 30px; height: 30px;
+  border-radius: 10px;
   border: 1.5px solid var(--done-line);
   background: var(--card);
   color: transparent;
   display: grid; place-items: center;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -608,13 +619,13 @@ h1, h2, h3, p { margin: 0; }
 
 .empty {
   text-align: center;
-  padding: 42px 16px;
+  padding: 48px 16px;
   color: var(--sub);
-  font-size: 13.5px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.75;
 }
 
-.empty b { display: block; color: var(--ink-2); font-size: 15px; margin-bottom: 4px; }
+.empty b { display: block; color: var(--ink-2); font-size: 16.5px; margin-bottom: 6px; }
 
 /* ---------- fab ---------- */
 .fab {
@@ -657,7 +668,7 @@ h1, h2, h3, p { margin: 0; }
 
 .sheet {
   width: 100%;
-  max-width: 640px;
+  max-width: 680px;
   max-height: 92vh;
   background: var(--card);
   border-radius: 20px 20px 0 0;
@@ -679,26 +690,26 @@ h1, h2, h3, p { margin: 0; }
 .sheet-top {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 15px 15px 7px;
+  gap: 11px;
+  padding: 17px 16px 9px;
   flex: none;
 }
 
 .sheet-top .grow { flex: 1; min-width: 0; }
 
 .eyebrow {
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--sub);
   letter-spacing: .01em;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .sheet-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: -.02em;
-  line-height: 1.35;
+  letter-spacing: -.025em;
+  line-height: 1.34;
   word-break: keep-all;
 }
 
@@ -717,7 +728,7 @@ h1, h2, h3, p { margin: 0; }
 .sheet-body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 15px 12px;
+  padding: 0 16px 14px;
   flex: 1;
 }
 
@@ -741,13 +752,13 @@ h1, h2, h3, p { margin: 0; }
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-height: 42px;
-  padding: 9px 13px;
-  border-radius: 11px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
   border: 1px solid transparent;
   background: var(--line-2);
   color: var(--ink-2);
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 750;
   cursor: pointer;
   flex: 1 1 auto;
@@ -763,21 +774,21 @@ h1, h2, h3, p { margin: 0; }
 .btn.block { width: 100%; flex: none; }
 .btn.grow0 { flex: none; }
 .btn:disabled { opacity: .45; cursor: default; filter: none; }
-.btn.sm { min-height: 36px; padding: 6px 11px; font-size: 12.5px; }
+.btn.sm { min-height: 38px; padding: 7px 12px; font-size: 13.5px; }
 
 /* ---------- detail ---------- */
 .done-toggle {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  margin-top: 9px;
-  padding: 11px 13px;
+  margin-top: 11px;
+  padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink-2);
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 700;
   text-align: left;
   cursor: pointer;
@@ -787,38 +798,39 @@ h1, h2, h3, p { margin: 0; }
 
 .done-toggle .box {
   flex: none;
-  width: 21px; height: 21px;
+  width: 22px; height: 22px;
   border-radius: 7px;
   border: 1.5px solid var(--done-line);
   background: var(--card);
   display: grid; place-items: center;
-  font-size: 11px;
+  font-size: 12px;
   color: transparent;
 }
 
 .done-toggle.on .box { background: var(--accent); border-color: var(--accent); color: #fff; }
 .done-toggle .lbl { flex: 1; }
-.done-toggle .hint2 { font-size: 11px; color: var(--sub); font-weight: 600; }
+.done-toggle .hint2 { font-size: 12px; color: var(--sub); font-weight: 600; }
 
-.tagrow { display: flex; flex-wrap: wrap; margin-top: 8px; }
+.tagrow { display: flex; flex-wrap: wrap; margin-top: 10px; }
 
 .tagpill {
   display: inline-block;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-ink);
-  margin: 0 4px 4px 0;
+  margin: 0 5px 5px 0;
 }
 
 .descbox {
-  margin-top: 10px;
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 11px 13px;
-  max-height: 40vh;
+  margin-top: 12px;
+  background: var(--desc-bg);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  max-height: 42vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -833,34 +845,35 @@ h1, h2, h3, p { margin: 0; }
 .desc {
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 14px;
-  line-height: 1.72;
+  font-size: 15.5px;
+  line-height: 1.78;
   color: var(--ink-2);
+  letter-spacing: -.005em;
 }
 
 .desc .dl { color: var(--accent-ink); text-decoration: underline; word-break: break-all; }
 
-.desc-empty { color: var(--sub); font-size: 13px; }
+.desc-empty { color: var(--sub); font-size: 14px; }
 
 .moretxt {
   border: 0;
   background: none;
   color: var(--accent-ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 6px 0 0;
+  padding: 7px 0 0;
   cursor: pointer;
 }
 
 .seclabel {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 16px 0 6px;
-  font-size: 11.5px;
+  gap: 7px;
+  margin: 20px 0 9px;
+  font-size: 13px;
   font-weight: 800;
-  color: var(--sub);
-  letter-spacing: .01em;
+  color: var(--ink-2);
+  letter-spacing: .005em;
 }
 
 .seclabel .cnt { font-weight: 700; color: var(--sub); opacity: .8; }
@@ -868,15 +881,18 @@ h1, h2, h3, p { margin: 0; }
 .filerow, .linkrow {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 11px;
-  margin-bottom: 5px;
+  gap: 11px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 7px;
   background: var(--card);
   cursor: pointer;
-  min-height: 42px;
+  min-height: 58px;
+  transition: border-color .12s, box-shadow .12s;
 }
+
+.filerow:hover, .linkrow:hover { border-color: var(--accent-line); box-shadow: var(--shadow-sm); }
 
 .filerow:active, .linkrow:active { background: var(--line-2); }
 
@@ -885,37 +901,43 @@ h1, h2, h3, p { margin: 0; }
 .filerow .fname, .linkrow .lname {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .filerow .fsub, .linkrow .lsub {
-  font-size: 10.5px;
+  font-size: 11.8px;
   color: var(--sub);
   font-weight: 600;
-  margin-top: 1px;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.filerow .go, .linkrow .go { flex: none; color: var(--sub); font-size: 12px; }
+.filerow .go, .linkrow .go { flex: none; color: var(--sub); font-size: 12.5px; font-weight: 600; }
 
 .fx {
   flex: none;
-  font-size: 8.5px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 42px;
+  height: 34px;
+  font-size: 9.5px;
   font-weight: 800;
   letter-spacing: .03em;
-  padding: 3px 5px;
-  border-radius: 5px;
+  padding: 0 6px;
+  border-radius: 8px;
   background: #eef0ee;
   color: #4b5563;
-  min-width: 30px;
   text-align: center;
 }
+
+.fx.link { font-size: 16px; min-width: 38px; background: #eef1f6; }
 
 .fx.ppt { background: #fff0e6; color: #c2410c; }
 .fx.hwp { background: #e7f0ff; color: #1d4ed8; }
@@ -925,6 +947,87 @@ h1, h2, h3, p { margin: 0; }
 .fx.gsheet { background: #e6f4ea; color: #137333; }
 .fx.gslides { background: #fef7e0; color: #b06000; }
 .fx.gdrive { background: #eef1f6; color: #3c4043; }
+
+/* ---------- 상세 화면의 한 줄 드라이브 첨부 ---------- */
+.attachbar {
+  margin: 12px 0 2px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  border-radius: 14px;
+  padding: 11px 12px 10px;
+}
+
+.ab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ab-title { font-size: 13px; font-weight: 800; color: var(--accent-ink); letter-spacing: -.01em; }
+.ab-open {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--accent-ink);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .6);
+}
+
+.ab-row { display: flex; gap: 7px; align-items: stretch; }
+
+.ab-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 1px solid var(--accent-line);
+  border-radius: 11px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  padding: 0 12px;
+  outline: none;
+}
+
+.ab-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22, 163, 74, .16); }
+.ab-input::placeholder { color: var(--sub); }
+
+.ab-btn {
+  flex: none;
+  height: 44px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ab-btn:active { filter: brightness(.95); }
+
+.ab-hint {
+  margin: 7px 1px 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--accent-ink);
+  opacity: .82;
+  line-height: 1.45;
+}
+
+.ab-hint.bad { color: #b91c1c; opacity: 1; }
+.ab-hint.ok { color: var(--accent-ink); opacity: 1; font-weight: 750; }
+
+@media (prefers-color-scheme: dark) {
+  .ab-open { background: rgba(255, 255, 255, .1); }
+  .ab-hint.bad { color: #fca5a5; }
+}
 
 /* ---------- google drive file linking ---------- */
 .drivebtns { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
@@ -954,6 +1057,7 @@ h1, h2, h3, p { margin: 0; }
   .fx.gsheet { background: #17301f; color: #86efac; }
   .fx.gslides { background: #3a2415; color: #fdba74; }
   .fx.gdrive { background: #23282a; color: #b6c0b8; }
+  .fx.link { background: #23282a; }
   .drivepanel { background: #1e2422; }
   .dp-detect.ok { color: #86efac; }
   .dp-detect.bad { color: #fca5a5; }
@@ -967,10 +1071,10 @@ h1, h2, h3, p { margin: 0; }
 
 .flabel {
   display: block;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 800;
-  color: var(--sub);
-  margin-bottom: 5px;
+  color: var(--ink-2);
+  margin-bottom: 6px;
 }
 
 .input, .textarea, .select {
@@ -978,12 +1082,12 @@ h1, h2, h3, p { margin: 0; }
   border: 1px solid var(--line);
   background: var(--card);
   border-radius: 11px;
-  padding: 9px 11px;
-  font-size: 15px;
+  padding: 10px 12px;
+  font-size: 15.5px;
   font-family: inherit;
   color: var(--ink);
   outline: none;
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .input:focus, .textarea:focus, .select:focus {
@@ -996,11 +1100,11 @@ h1, h2, h3, p { margin: 0; }
 .checkline {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
+  gap: 9px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--ink-2);
-  padding: 7px 0;
+  padding: 8px 0;
   cursor: pointer;
 }
 
@@ -1011,10 +1115,10 @@ h1, h2, h3, p { margin: 0; }
 }
 
 .hint {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--sub);
-  line-height: 1.55;
-  margin-top: 6px;
+  line-height: 1.6;
+  margin-top: 7px;
 }
 
 .suggest { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
@@ -1023,8 +1127,8 @@ h1, h2, h3, p { margin: 0; }
   border: 1px solid var(--line);
   background: var(--card);
   border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 11px;
+  padding: 4px 10px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--sub);
   cursor: pointer;
@@ -1089,14 +1193,14 @@ h1, h2, h3, p { margin: 0; }
 .setrow .si { flex: none; width: 24px; text-align: center; font-size: 15px; }
 
 .setrow .st2 { flex: 1; min-width: 0; }
-.setrow .st2 b { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.setrow .st2 b { display: block; font-size: 14.5px; font-weight: 700; color: var(--ink); }
 .setrow .st2 i {
   display: block;
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--sub);
-  margin-top: 1px;
-  line-height: 1.45;
+  margin-top: 2px;
+  line-height: 1.5;
 }
 
 .setrow .chev { flex: none; color: var(--sub); font-size: 15px; }
@@ -1230,46 +1334,62 @@ h1, h2, h3, p { margin: 0; }
   .pill .tag { display: none; }
 }
 
+/* 달력 칸의 태그는 폭을 잡아먹어 제목을 가리므로 항상 숨긴다(태그는 칩·상세에서 보임) */
+.pill .tag { display: none; }
+
 @media (max-width: 680px) {
-  .app { padding: 0 8px calc(92px + env(safe-area-inset-bottom)); }
-  .head { padding: 8px 2px 7px; }
-  .mark { width: 30px; height: 30px; border-radius: 10px; font-size: 14px; }
-  .brand-txt h1 { font-size: 15.5px; }
-  .brand-sub { font-size: 10.5px; }
-  .seg button { padding: 6px 9px; font-size: 12px; }
-  .icon-btn { width: 32px; height: 32px; }
-  .head-nav { gap: 5px; }
-  .nav-btn { width: 27px; height: 30px; }
-  .nav-title { min-width: 84px; font-size: 13.5px; }
-  .today-btn { padding: 8px 10px; font-size: 12px; }
-  .search { height: 34px; flex: 1 1 100%; order: 3; }
+  .app { padding: 0 9px calc(92px + env(safe-area-inset-bottom)); }
+  .head { padding: 9px 2px 8px; }
+  .mark { width: 32px; height: 32px; border-radius: 10px; font-size: 15px; }
+  .brand-txt h1 { font-size: 16.5px; }
+  .brand-sub { font-size: 11.5px; }
+  .seg button { padding: 7px 10px; font-size: 13px; }
+  .icon-btn { width: 34px; height: 34px; }
+  .head-nav { gap: 6px; }
+  .nav-btn { width: 29px; height: 33px; }
+  .nav-title { min-width: 96px; font-size: 15px; }
+  .today-btn { padding: 9px 12px; font-size: 13px; }
+  .search { height: 38px; flex: 1 1 100%; order: 3; }
   .search input { font-size: 16px; }
-  .chips { padding: 8px 2px 2px; }
-  .statusbar { padding: 2px 2px 6px; font-size: 11.5px; }
-  .grid { gap: 3px; }
-  .cell { min-height: 78px; border-radius: 8px; padding: 3px 1.5px 2px; gap: 1px; }
-  .dnum { font-size: 10px; min-width: 17px; height: 17px; padding: 0 3px; }
-  .pill { font-size: 9.2px; padding: 1.5px 2px; border-left-width: 2px; border-radius: 4px; gap: 1.5px; letter-spacing: -.02em; align-items: flex-start; line-height: 1.22; }
-  .pill .tt { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.22; }
+  .chips { padding: 9px 2px 3px; }
+  .chip { padding: 6px 11px; font-size: 13px; }
+  .statusbar { padding: 4px 2px 8px; font-size: 12.5px; }
+  .grid { gap: 4px; }
+  .cell { min-height: 98px; border-radius: 9px; padding: 5px 3px 4px; gap: 2px; }
+  .dnum { font-size: 11.5px; min-width: 19px; height: 19px; padding: 0 4px; }
+  .pill { font-size: 10.4px; padding: 3px 4px; border-left-width: 2.5px; border-radius: 5px; gap: 2px; align-items: flex-start; line-height: 1.26; }
+  .pill .tt { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.26; word-break: keep-all; }
   .pill .tag { display: none; }
   .pill .pchk { display: none; }
-  .pill .fxb { font-size: 7px; padding: 0 1px; }
-  .pill .st { font-size: 7.5px; }
-  .more { font-size: 9.5px; padding: 0 2px; }
-  .dowbar { font-size: 10px; gap: 3px; padding-bottom: 4px; }
-  .row { padding: 7px 9px; gap: 8px; }
-  .row .date { width: 34px; }
-  .row .title { font-size: 13.2px; }
+  .pill .fxb { font-size: 8px; padding: 0 2px; }
+  .pill .st { font-size: 8.5px; }
+  .more { font-size: 10.5px; padding: 1px 4px; }
+  .dowbar { font-size: 11.5px; gap: 4px; padding-bottom: 5px; }
+  .row { padding: 10px 11px; gap: 9px; }
+  .row .date { width: 38px; }
+  .row .date b { font-size: 17px; }
+  .row .title { font-size: 15px; }
+  .row .meta { font-size: 11.5px; }
   .statgrid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
-  .stat b { font-size: 16px; }
-  .srow .sdate { width: 92px; font-size: 11.5px; }
+  .stat b { font-size: 17px; }
+  .srow .sdate { width: 92px; font-size: 12px; }
+  .ab-input { font-size: 15px; height: 44px; }
+  .sheet-body { padding: 0 14px 12px; }
+  .sheet-top { padding: 16px 14px 8px; }
+  .sheet-title { font-size: 18.5px; }
+  .desc { font-size: 15px; line-height: 1.75; }
+  .descbox { padding: 13px 14px; }
 }
 
 @media (max-width: 400px) {
-  .cell { min-height: 72px; }
+  .cell { min-height: 90px; padding: 5px 1px 4px; }
+  .grid { gap: 3px; }
   .brand-sub { display: none; }
-  .pill { font-size: 8.7px; line-height: 1.2; letter-spacing: -.02em; }
-  .more { font-size: 9px; }
+  /* 폭이 좁아 두 줄로 넘기면 낱말이 어중간하게 끊긴다 → 한 줄로 두고 넘치는 부분만 … */
+  .pill { font-size: 10.2px; line-height: 1.3; padding: 3px 2px; border-left-width: 2px; gap: 1px; }
+  .pill .tt { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+  .pill .fxb { display: none; }
+  .more { font-size: 10px; }
 }
 
 @media print {
@@ -1780,9 +1900,9 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
   /* ---------------- month grid ---------------- */
   function pillLimit() {
     var w = window.innerWidth;
-    if (w < 520) return 2;
-    if (w < 900) return 2;
-    return 3;
+    if (w < 520) return 3;
+    if (w < 900) return 3;
+    return 4;
   }
 
   function pillHtml(ev) {
@@ -1985,6 +2105,19 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     });
   }
 
+  /* 이벤트 상세 화면에서 바로 드라이브 자료를 붙이는 한 줄 입력창.
+     이름·종류는 주소만 보고 자동으로 정해지므로 사용자는 붙여넣고 [연결]만 누르면 된다. */
+  function attachBarHtml() {
+    return '<div class="attachbar" id="attachBar">' +
+      '<div class="ab-head"><span class="ab-title">📁 드라이브 파일 붙이기</span>' +
+      '<a class="ab-open" href="https://drive.google.com" target="_blank" rel="noopener noreferrer">드라이브 ↗</a></div>' +
+      '<div class="ab-row">' +
+      '<input class="ab-input" id="abUrl" type="url" inputmode="url" enterkeyhint="done" autocomplete="off" spellcheck="false" placeholder="드라이브 주소를 붙여넣기" aria-label="구글 드라이브·문서 주소">' +
+      '<button type="button" class="ab-btn" data-act="abAdd">연결</button>' +
+      '</div>' +
+      '<p class="ab-hint" id="abHint">주소만 붙이면 바로 붙습니다 · 이름은 자동</p></div>';
+  }
+
   function detailHtml(ev, showAllLinks) {
     var dateLine = ev.end ? fmtFull(ev.date) + ' ~ ' + fmtFull(ev.end) : fmtFull(ev.date);
     var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">' + esc(dateLine) + '</p>' +
@@ -2008,14 +2141,17 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       html += '<div class="descbox" id="descBox"><p class="desc">' + linkify(ev.desc) + '</p></div>';
       html += '<button type="button" class="moretxt" data-act="expand">전체 보기</button>';
     } else {
-      html += '<div class="descbox"><p class="desc-empty">내용이 없습니다. 편집에서 멘트를 적어 두면 다음 해에 그대로 복사할 수 있어요.</p></div>';
+      html += '<div class="descbox"><p class="desc-empty">멘트가 없습니다. 편집에서 멘트를 적으면 다음 해에 그대로 복사할 수 있어요.</p></div>';
     }
+
+    /* 멘트 바로 밑에서 드라이브 자료를 한 번에 붙인다 (편집 화면을 열 필요 없음) */
+    html += attachBarHtml();
 
     var files = (ev.links || []).filter(function (l) { return l.kind; });
     var web = (ev.links || []).filter(function (l) { return !l.kind; });
 
     if (files.length) {
-      html += '<div class="seclabel">자료 <span class="cnt">' + files.length + '</span></div>';
+      html += '<div class="seclabel">📎 드라이브 자료 <span class="cnt">' + files.length + '</span></div>';
       files.forEach(function (f, i) {
         var where = fileKindLabel(f.kind);
         html += '<div class="filerow" data-file="' + i + '" role="button" tabindex="0">' +
@@ -2027,13 +2163,13 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     }
 
     if (web.length) {
-      html += '<div class="seclabel">링크 <span class="cnt">' + web.length + '</span></div>';
+      html += '<div class="seclabel">🔗 링크 <span class="cnt">' + web.length + '</span></div>';
       var shownLinks = showAllLinks ? web : web.slice(0, 6);
       shownLinks.forEach(function (l, i) {
         html += '<div class="linkrow" data-link="' + i + '" role="button" tabindex="0">' +
-          '<span class="fx" style="min-width:22px">🔗</span>' +
-          '<span style="flex:1;min-width:0"><span class="lname">' + esc(l.name || l.url) + '</span>' +
-          '<span class="lsub">' + esc(l.url) + '</span></span><span class="go">›</span></div>';
+          '<span class="fx link">🔗</span>' +
+          '<span style="flex:1;min-width:0"><span class="lname">' + esc(linkTitle(l)) + '</span>' +
+          '<span class="lsub">' + esc(l.url) + '</span></span><span class="go">열기 ›</span></div>';
       });
       if (!showAllLinks && web.length > shownLinks.length) {
         html += '<button type="button" class="moretxt" data-act="morelinks">링크 ' + (web.length - shownLinks.length) + '개 더 보기</button>';
@@ -2049,11 +2185,84 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     return html;
   }
 
+  /* 링크 이름이 비어 있으면 긴 주소를 그대로 제목으로 쓰지 않고 사이트 이름을 보여 준다 */
+  function linkTitle(l) {
+    var name = String(l.name || '').trim();
+    var url = String(l.url || '').trim();
+    if (name && name !== url) return name;
+    var host = '';
+    try {
+      host = new URL(/^https?:\/\//i.test(url) ? url : 'https://' + url).hostname.replace(/^www\./, '');
+    } catch (e) { host = ''; }
+    return host || url;
+  }
+
   function fmtSize(n) {
     if (!n) return '';
     if (n < 1024) return n + 'B';
     if (n < 1024 * 1024) return Math.round(n / 1024) + 'KB';
     return (n / 1024 / 1024).toFixed(1) + 'MB';
+  }
+
+  /* 상세 화면에서 드라이브 자료 붙이기 — 붙이는 즉시 저장(commit)하고
+     실시간 자동 동기화(__ljcSync.onEdit)까지 함께 돈다. */
+  function attachDriveTo(id, url) {
+    var ev = findEv(id);
+    if (!ev) return false;
+    var info = driveInfo(url);
+    if (!info) {
+      toast('구글 드라이브·문서 주소가 아닙니다');
+      focusAttachInput(id);
+      return false;
+    }
+    ev.links = ev.links || [];
+    if (ev.links.some(function (l) { return l.url === info.url; })) {
+      toast('이미 붙어 있는 주소입니다');
+      focusAttachInput(id);
+      return false;
+    }
+    var link = { kind: info.kind, ext: info.kind, name: info.label, url: info.url };
+    ev.links.push(link);
+    commit();
+    refreshDetailSheets(id);
+    toast(info.label + ' 붙였습니다 · 바로 저장됨', function () {
+      var back = findEv(id);
+      if (!back) return;
+      var at = (back.links || []).indexOf(link);
+      if (at >= 0) back.links.splice(at, 1);
+      commit();
+      refreshDetailSheets(id);
+    });
+    showAttached(id, link);
+    return true;
+  }
+
+  /* 붙인 자료를 화면에 보이게 하고, 바로 다음 주소를 붙일 수 있게 입력칸으로 돌아간다 */
+  function showAttached(id, link) {
+    setTimeout(function () {
+      modals.forEach(function (ov) {
+        if (ov.getAttribute('data-evid') !== id) return;
+        var ev = findEv(id);
+        var files = ev ? (ev.links || []).filter(function (l) { return l.kind; }) : [];
+        var at = files.indexOf(link);
+        var row = at >= 0 ? ov.querySelector('[data-file="' + at + '"]') : null;
+        if (row && row.scrollIntoView) {
+          try { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+        }
+        var inp = ov.querySelector('#abUrl');
+        if (inp) { try { inp.focus({ preventScroll: true }); } catch (e) {} }
+      });
+    }, 40);
+  }
+
+  function focusAttachInput(id) {
+    setTimeout(function () {
+      modals.forEach(function (ov) {
+        if (ov.getAttribute('data-evid') !== id) return;
+        var inp = ov.querySelector('#abUrl');
+        if (inp) { try { inp.focus(); } catch (e) {} }
+      });
+    }, 30);
   }
 
   function openDetail(id) {
@@ -2062,6 +2271,43 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     var ov = openSheet(detailHtml(ev));
     ov.setAttribute('data-evid', id);
     tagDescOverflow(ov);
+    /* 드라이브 주소를 붙여넣는 순간 바로 붙는다 (1단계 첨부) */
+    ov.addEventListener('paste', function (e) {
+      var t = e.target;
+      if (!t || t.id !== 'abUrl') return;
+      var txt = '';
+      try { txt = (e.clipboardData || window.clipboardData).getData('text') || ''; } catch (err) { txt = ''; }
+      if (!driveInfo(txt)) return;
+      e.preventDefault();
+      attachDriveTo(id, txt);
+    });
+    ov.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (!t || t.id !== 'abUrl') return;
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      attachDriveTo(id, t.value);
+    });
+    ov.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || t.id !== 'abUrl') return;
+      var hint = $('#abHint', ov);
+      if (!hint) return;
+      var v = t.value.trim();
+      if (!v) {
+        hint.className = 'ab-hint';
+        hint.textContent = '주소만 붙이면 바로 붙습니다 · 이름은 자동';
+        return;
+      }
+      var info = driveInfo(v);
+      if (!info) {
+        hint.className = 'ab-hint bad';
+        hint.textContent = '구글 드라이브·문서 주소가 아닙니다 (drive/google docs) ';
+        return;
+      }
+      hint.className = 'ab-hint ok';
+      hint.textContent = info.label + ' · [연결]을 누르거나 그냥 붙여넣으세요';
+    });
     ov.addEventListener('click', function (e) {
       var b = e.target.closest('[data-act], [data-file], [data-link]');
       if (!b) return;
@@ -2080,6 +2326,7 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       }
       var act = b.getAttribute('data-act');
       if (act === 'close') closeSheet(ov);
+      else if (act === 'abAdd') { attachDriveTo(id, ($('#abUrl', ov) || {}).value || ''); }
       else if (act === 'toggleDone') { toggleDone(id); syncDone(ov, cur); }
       else if (act === 'copy') copyMent(cur);
       else if (act === 'move') {
@@ -3187,6 +3434,7 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     findEv: findEv,
     render: render,
     openDetail: openDetail,
+    attachDriveTo: attachDriveTo,
     openEdit: openEdit,
     openDay: openDay,
     openSettings: openSettings,
