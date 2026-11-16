@@ -921,6 +921,28 @@ h1, h2, h3, p { margin: 0; }
 .fx.hwp { background: #e7f0ff; color: #1d4ed8; }
 .fx.pdf { background: #ffe9e9; color: #c02626; }
 .fx.sheet { background: #e7f7ec; color: #15803d; }
+.fx.gdoc { background: #e8f0fe; color: #1a73e8; }
+.fx.gsheet { background: #e6f4ea; color: #137333; }
+.fx.gslides { background: #fef7e0; color: #b06000; }
+.fx.gdrive { background: #eef1f6; color: #3c4043; }
+
+/* ---------- google drive file linking ---------- */
+.drivebtns { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.drivepanel {
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  padding: 10px 11px;
+  margin: 0 0 8px;
+  background: var(--line-2);
+}
+.dp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.dp-top b { font-size: 12.5px; }
+.dp-open { font-size: 11.5px; font-weight: 700; color: #1a73e8; text-decoration: none; white-space: nowrap; }
+.dp-detect { font-size: 10.5px; font-weight: 650; color: var(--sub); margin: 5px 0 7px; }
+.dp-detect.ok { color: #15803d; }
+.dp-detect.bad { color: #c02626; }
+.dp-row { display: flex; gap: 6px; align-items: center; }
+.dp-row .input { flex: 1; min-width: 0; }
 
 @media (prefers-color-scheme: dark) {
   .fx { background: #23282a; color: #b6c0b8; }
@@ -928,6 +950,14 @@ h1, h2, h3, p { margin: 0; }
   .fx.hwp { background: #16233d; color: #93b4ff; }
   .fx.pdf { background: #3a1a1a; color: #fca5a5; }
   .fx.sheet { background: #17301f; color: #86efac; }
+  .fx.gdoc { background: #16233d; color: #93b4ff; }
+  .fx.gsheet { background: #17301f; color: #86efac; }
+  .fx.gslides { background: #3a2415; color: #fdba74; }
+  .fx.gdrive { background: #23282a; color: #b6c0b8; }
+  .drivepanel { background: #1e2422; }
+  .dp-detect.ok { color: #86efac; }
+  .dp-detect.bad { color: #fca5a5; }
+  .dp-open { color: #93b4ff; }
 }
 
 /* ---------- forms ---------- */
@@ -1313,6 +1343,39 @@ body .setrow[data-act="restore"]{ display:none !important; }
   .x-status.err{ color:#f87171; }
 }
 
+/* ---------- 실시간 자동 동기화 상태 칩 ---------- */
+.sync-chip{
+  position: fixed;
+  left: 14px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 45;
+  max-width: calc(100vw - 130px);
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(23, 33, 27, .88);
+  color: #f0fdf4;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .22s ease, transform .22s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sync-chip.show{ opacity: 1; transform: translateY(0); }
+.sync-chip.err{ background: rgba(153, 27, 27, .92); color: #fff1f1; }
+.sync-chip.busy{ background: rgba(30, 41, 59, .9); }
+@media (prefers-color-scheme: dark){
+  .sync-chip{ background: rgba(226, 232, 240, .93); color: #10231a; }
+  .sync-chip.err{ background: rgba(185, 28, 28, .95); color: #fff1f1; }
+  .sync-chip.busy{ background: rgba(51, 65, 85, .95); color: #e2e8f0; }
+}
+@media (max-width: 380px){ .sync-chip{ max-width: calc(100vw - 118px); font-size: 11px; } }
+
 </style>
 </head>
 <body>
@@ -1469,15 +1532,47 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     if (e === 'hwp' || e === 'hwpx') return 'fx hwp';
     if (e === 'pdf') return 'fx pdf';
     if (e === 'xls' || e === 'xlsx') return 'fx sheet';
+    if (e === 'gdoc') return 'fx gdoc';
+    if (e === 'gsheet') return 'fx gsheet';
+    if (e === 'gslides') return 'fx gslides';
+    if (e === 'gdrive') return 'fx gdrive';
     return 'fx';
   }
   function fxLabel(ext) {
     var e = String(ext || '').toUpperCase();
     if (!e) return 'FILE';
+    if (e === 'GDOC') return 'DOCS';
+    if (e === 'GSHEET') return 'SHEET';
+    if (e === 'GSLIDES') return 'SLIDE';
+    if (e === 'GDRIVE') return 'DRIVE';
     if (e === 'PPTX') return 'PPT';
     if (e === 'XLSX') return 'XLS';
     if (e === 'JPEG') return 'JPG';
     return e.slice(0, 4);
+  }
+
+  /* 구글 드라이브·문서 주소는 종류만 표시하고 링크(kind)로 저장한다.
+     kind: gdoc/gsheet/gslides/gdrive — 파일 본문이 아니라 주소만 보관하므로
+     JSON 내보내기·불러오기와 구글 시트 동기화에도 그대로 살아남습니다. */
+  function driveInfo(url) {
+    var u = String(url || '').trim();
+    if (!u) return null;
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    if (!/^https?:\/\/(drive|docs)\.google\.com\//i.test(u)) return null;
+    if (/docs\.google\.com\/spreadsheets\//i.test(u)) return { kind: 'gsheet', label: '구글 스프레드시트', url: u };
+    if (/docs\.google\.com\/presentation\//i.test(u)) return { kind: 'gslides', label: '구글 프레젠테이션', url: u };
+    if (/docs\.google\.com\/document\//i.test(u)) return { kind: 'gdoc', label: '구글 문서', url: u };
+    if (/docs\.google\.com\//i.test(u)) return { kind: 'gdoc', label: '구글 문서', url: u };
+    if (/drive\.google\.com\/.*folders\//i.test(u)) return { kind: 'gdrive', label: '구글 드라이브 폴더', url: u };
+    return { kind: 'gdrive', label: '구글 드라이브 파일', url: u };
+  }
+  function fileKindLabel(kind) {
+    if (kind === 'local') return '이 기기에 저장됨';
+    if (kind === 'gdoc') return '구글 문서';
+    if (kind === 'gsheet') return '구글 스프레드시트';
+    if (kind === 'gslides') return '구글 프레젠테이션';
+    if (kind === 'gdrive') return '구글 드라이브';
+    return '구글 드라이브';
   }
 
   /* ---------------- state ---------------- */
@@ -1617,6 +1712,10 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     rebuildIndex();
     saveState();
     render();
+    /* 실시간 자동 동기화(껍데기 확장)에 편집 시점을 알린다 */
+    if (window.__ljcSync && window.__ljcSync.onEdit) {
+      try { window.__ljcSync.onEdit(); } catch (e) {}
+    }
   }
 
   /* ---------------- header / chips / status ---------------- */
@@ -1918,7 +2017,7 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     if (files.length) {
       html += '<div class="seclabel">자료 <span class="cnt">' + files.length + '</span></div>';
       files.forEach(function (f, i) {
-        var where = f.kind === 'local' ? '이 기기에 저장됨' : '구글 드라이브';
+        var where = fileKindLabel(f.kind);
         html += '<div class="filerow" data-file="' + i + '" role="button" tabindex="0">' +
           '<span class="' + fxClass(f.ext) + '">' + esc(fxLabel(f.ext)) + '</span>' +
           '<span style="flex:1;min-width:0"><span class="fname">' + esc(f.name || '파일') + '</span>' +
@@ -2259,13 +2358,26 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       '<div class="suggest" id="tagSuggest"></div></div>' +
       '<div class="field"><label class="flabel" for="eDesc">멘트 · 내용</label>' +
       '<textarea class="textarea" id="eDesc" placeholder="학생들에게 그대로 읽을 멘트나 수업 메모를 적어 두세요.">' + esc(ev && ev.desc ? ev.desc : '') + '</textarea></div>' +
-      '<div class="field"><span class="flabel">첨부 파일</span><div id="fileList"></div>' +
-      '<button type="button" class="btn ghost sm" data-act="pick">＋ 파일 첨부</button>' +
+      '<div class="field"><span class="flabel">파일 · 자료</span>' +
+      '<div class="drivebtns">' +
+      '<button type="button" class="btn soft sm" data-act="drivePanel">📁 구글 드라이브 파일 연결</button>' +
+      '<button type="button" class="btn ghost sm" data-act="pick">＋ 기기에서 파일 첨부</button>' +
+      '</div>' +
+      '<div id="drivePanel" class="drivepanel" hidden>' +
+      '<div class="dp-top"><b>구글 드라이브 파일 연결</b>' +
+      '<a class="dp-open" href="https://drive.google.com" target="_blank" rel="noopener noreferrer">구글 드라이브 열기 ↗</a></div>' +
+      '<p class="hint" style="margin:0 0 8px">드라이브에서 파일을 연 뒤 <b>공유 → 링크 복사</b>한 주소를 붙여 넣으세요. 문서·스프레드시트·프레젠테이션 주소도 그대로 넣으면 종류를 알아서 구분합니다.</p>' +
+      '<input class="input" id="eDriveUrl" type="url" inputmode="url" spellcheck="false" placeholder="https://docs.google.com/presentation/d/…">' +
+      '<p class="dp-detect" id="driveDetect">주소를 붙여 넣으면 종류를 자동으로 알아봅니다.</p>' +
+      '<div class="dp-row"><input class="input" id="eDriveName" type="text" autocomplete="off" placeholder="파일 이름 (선택)">' +
+      '<button type="button" class="btn primary sm" data-act="driveAdd">연결</button></div>' +
+      '</div>' +
+      '<div id="fileList"></div>' +
       '<input type="file" id="eFile" multiple hidden>' +
-      '<p class="hint">PPT·HWP·PDF 등을 이 기기 브라우저에 저장해 두고 나중에 바로 열 수 있어요. JSON 백업에는 파일 본문이 포함되지 않습니다.</p></div>' +
+      '<p class="hint">구글 드라이브 자료는 주소만 저장되어 용량을 차지하지 않고, 기기 파일은 이 브라우저에만 저장됩니다(JSON 백업에 파일 본문은 포함되지 않음).</p></div>' +
       '<div class="field"><span class="flabel">링크</span><div id="linkList"></div>' +
       '<button type="button" class="btn ghost sm" data-act="addlink">＋ 링크 추가</button>' +
-      '<p class="hint">구글 드라이브·유튜브 등 웹 주소를 붙여 두세요.</p></div>' +
+      '<p class="hint">유튜브·블로그 등 웹 주소를 붙여 두세요. 구글 드라이브 파일은 위의 <b>📁 구글 드라이브 파일 연결</b> 을 쓰면 자료로 정리됩니다.</p></div>' +
       '</div><div class="sheet-foot">' +
       '<button type="button" class="btn ghost" data-act="cancel">취소</button>' +
       '<button type="button" class="btn primary" data-act="save">저장</button></div>';
@@ -2275,13 +2387,13 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     function renderFiles() {
       var files = draft.links.filter(function (l) { return l.kind; });
       var box = $('#fileList', ov);
-      if (!files.length) { box.innerHTML = '<p class="hint" style="margin:0 0 6px">첨부한 파일이 없습니다.</p>'; return; }
+      if (!files.length) { box.innerHTML = '<p class="hint" style="margin:0 0 6px">연결한 파일이 없습니다. 위의 <b>📁 구글 드라이브 파일 연결</b> 로 드라이브 자료를 붙여 넣으세요.</p>'; return; }
       box.innerHTML = files.map(function (f, i) {
         return '<div class="filerow" style="cursor:default">' +
           '<span class="' + fxClass(f.ext) + '">' + esc(fxLabel(f.ext)) + '</span>' +
           '<span style="flex:1;min-width:0"><span class="fname">' + esc(f.name) + '</span>' +
-          '<span class="fsub">' + (f.kind === 'local' ? '기기 저장' : '드라이브') + (f.size ? ' · ' + fmtSize(f.size) : '') + '</span></span>' +
-          '<button type="button" class="icon-mini" data-rmfile="' + i + '" aria-label="파일 빼기">✕</button></div>';
+          '<span class="fsub">' + esc(fileKindLabel(f.kind)) + (f.size ? ' · ' + fmtSize(f.size) : '') + '</span></span>' +
+          '<button type="button" class="icon-mini" data-rmfile="' + i + '" aria-label="자료 빼기">✕</button></div>';
       }).join('');
     }
 
@@ -2352,6 +2464,15 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       var act = b.getAttribute('data-act');
       if (act === 'cancel') { cancel(); }
       else if (act === 'pick') { $('#eFile', ov).click(); }
+      else if (act === 'drivePanel') {
+        var panel = $('#drivePanel', ov);
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) {
+          var u0 = $('#eDriveUrl', ov);
+          setTimeout(function () { try { u0.focus(); } catch (err) {} }, 80);
+        }
+      }
+      else if (act === 'driveAdd') { addDrive(); }
       else if (act === 'addlink') {
         draft.links.push({ name: '', url: '' });
         renderLinks();
@@ -2365,6 +2486,56 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       closeSheet(ov);
       if (backOv) closeSheet(backOv);
     }
+
+    /* ---- 구글 드라이브 파일 연결 ---- */
+    function drivePreview() {
+      var el = $('#eDriveUrl', ov);
+      var box = $('#driveDetect', ov);
+      var nameEl = $('#eDriveName', ov);
+      if (!el || !box) return null;
+      var info = driveInfo(el.value);
+      if (!el.value.trim()) {
+        box.className = 'dp-detect';
+        box.textContent = '주소를 붙여 넣으면 종류를 자동으로 알아봅니다.';
+        if (nameEl) nameEl.placeholder = '파일 이름 (선택)';
+        return null;
+      }
+      if (!info) {
+        box.className = 'dp-detect bad';
+        box.textContent = '구글 드라이브·문서 주소가 아닙니다. drive.google.com 또는 docs.google.com 주소를 넣어 주세요.';
+        if (nameEl) nameEl.placeholder = '파일 이름 (선택)';
+        return null;
+      }
+      box.className = 'dp-detect ok';
+      box.innerHTML = '<span class="' + fxClass(info.kind) + '">' + esc(fxLabel(info.kind)) + '</span> ' +
+        esc(info.label) + ' 주소로 인식했습니다.';
+      if (nameEl) nameEl.placeholder = info.label;
+      return info;
+    }
+    function addDrive() {
+      var urlEl = $('#eDriveUrl', ov);
+      var nameEl = $('#eDriveName', ov);
+      var info = driveInfo(urlEl.value);
+      if (!urlEl.value.trim()) { toast('구글 드라이브·문서 주소를 붙여 넣어 주세요.'); urlEl.focus(); return; }
+      if (!info) { toast('구글 드라이브·문서·스프레드시트·프레젠테이션 주소가 아닙니다.'); drivePreview(); urlEl.focus(); return; }
+      if (draft.links.some(function (l) { return l.url === info.url; })) { toast('이미 연결된 주소입니다.'); return; }
+      var name = (nameEl.value || '').trim() || info.label;
+      draft.links.push({ kind: info.kind, ext: info.kind, name: name, url: info.url });
+      renderFiles();
+      urlEl.value = '';
+      nameEl.value = '';
+      drivePreview();
+      $('#drivePanel', ov).hidden = true;
+      toast('구글 드라이브 ' + (info.label.indexOf('폴더') >= 0 ? '폴더' : '파일') + '을 연결했습니다');
+    }
+    $('#eDriveUrl', ov).addEventListener('input', drivePreview);
+    $('#eDriveUrl', ov).addEventListener('change', drivePreview);
+    $('#eDriveUrl', ov).addEventListener('keydown', function (e2) {
+      if (e2.key === 'Enter') { e2.preventDefault(); addDrive(); }
+    });
+    $('#eDriveName', ov).addEventListener('keydown', function (e2) {
+      if (e2.key === 'Enter') { e2.preventDefault(); addDrive(); }
+    });
 
     $('#eFile', ov).addEventListener('change', function (e) {
       var files = Array.prototype.slice.call(e.target.files || []);
@@ -3101,6 +3272,7 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
 /* 공개 배포용 껍데기(shell) 확장 기능
    1) 타임머신 스냅샷 — 지금 상태(기록·완료 표시)를 이 기기에 통째로 저장, 최근 5개, 복원/삭제
    2) 구글 시트 클라우드 동기화 — Apps Script 웹 앱 주소로 저장/불러오기
+   3) 일괄 정리 — 전체 체크 해제 / 첨부 파일만 일괄 비우기 (실행 전 스냅샷 자동 저장)
    모든 데이터는 이 기기 또는 사용자가 지정한 본인 구글 시트로만 갑니다. 앱이 다른 곳으로 보내지 않습니다. */
 (function () {
   'use strict';
@@ -3108,6 +3280,7 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
   if (!L) return;
 
   var SNAP_KEY = 'ljc_snaps_v1';
+  var DB_NAME = 'ljc_files_v1';   // app.js 의 첨부 파일 저장소와 같은 이름
   var URL_KEY = 'ljc_sheet_url';
   var LAST_KEY = 'ljc_sheet_last';
   var MAX_SNAPS = 5;
@@ -3169,12 +3342,35 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     (events || []).forEach(function (e) { if (e && e.done) done++; });
     return { n: (events || []).length, done: done };
   }
+  /* 진짜 첨부(기기 파일·예전 드라이브 첨부)만 '첨부'로 센다.
+     구글 드라이브 파일 연결(kind: gdoc/gsheet/gslides/gdrive)은 주소만 담은 자료라서
+     '첨부 파일만 일괄 비우기'에서 지우지 않는다. */
+  var ATTACH_KINDS = { local: 1, drive: 1 };
+  function isAttach(l) { return !!(l && l.kind && ATTACH_KINDS[l.kind]); }
+  function attachStats(events) {
+    var files = 0, links = 0, locals = 0, records = 0, drive = 0;
+    (events || []).forEach(function (e) {
+      var hit = 0;
+      (e && e.links || []).forEach(function (l) {
+        if (isAttach(l)) {
+          files++; hit++;
+          if (l.kind === 'local') locals++;
+        } else if (l && l.kind) {
+          drive++;
+        } else links++;
+      });
+      if (hit) records++;
+    });
+    return { files: files, links: links, locals: locals, records: records, drive: drive };
+  }
 
-  function saveSnapshot() {
+  /* 스냅샷 한 장 저장. 성공하면 {snap, dropped}, 실패하면 null. silent 면 실패를 알리지 않는다. */
+  function pushSnapshot(label, silent) {
     var ev = (L.state && L.state.events) || [];
-    if (!ev.length) { toast('저장할 기록이 없습니다'); return; }
-    var nameEl = $('#ljcSnapName');
-    var label = (nameEl && nameEl.value || '').trim();
+    if (!ev.length) {
+      if (!silent) toast('저장할 기록이 없습니다');
+      return null;
+    }
     var at = new Date().toISOString();
     var c = counts(ev);
     var snap = {
@@ -3194,17 +3390,27 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     var dropped = 0;
     while (list.length) {
       if (totalChars(list) > MAX_CHARS && list.length > 1) { list.pop(); dropped++; continue; }
-      try { writeSnaps(list); break; }
+      try { writeSnaps(list); renderSnapList(); return { snap: snap, dropped: dropped }; }
       catch (err) {
         if (list.length > 1) { list.pop(); dropped++; continue; }
-        toast('이 브라우저의 저장 공간이 부족해 스냅샷을 저장하지 못했습니다. (설정 → JSON 내보내기로 백업하세요)');
-        return;
+        if (!silent) toast('이 브라우저의 저장 공간이 부족해 스냅샷을 저장하지 못했습니다. (설정 → JSON 내보내기로 백업하세요)');
+        return null;
       }
     }
+    return null;
+  }
+
+  function saveSnapshot() {
+    var ev = (L.state && L.state.events) || [];
+    if (!ev.length) { toast('저장할 기록이 없습니다'); return; }
+    var nameEl = $('#ljcSnapName');
+    var label = (nameEl && nameEl.value || '').trim();
+    var c = counts(ev);
+    var made = pushSnapshot(label || null, false);
+    if (!made) return;
     if (nameEl) nameEl.value = '';
-    renderSnapList();
-    toast(dropped
-      ? '스냅샷을 저장했습니다. 공간이 부족해 오래된 ' + dropped + '개를 정리했습니다 (' + c.n + '개 기록)'
+    toast(made.dropped
+      ? '스냅샷을 저장했습니다. 공간이 부족해 오래된 ' + made.dropped + '개를 정리했습니다 (' + c.n + '개 기록)'
       : '스냅샷을 저장했습니다 (' + c.n + '개 기록)');
   }
 
@@ -3263,6 +3469,276 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     var sheet = box && box.closest ? box.closest('.sheet') : null;
     var x = sheet && sheet.querySelector('[data-act="close"]');
     if (x) x.click();
+  }
+
+  /* ------------------------------------------------ attachments (IndexedDB) */
+  function withFilesStore(mode, fn) {
+    return new Promise(function (resolve) {
+      var req;
+      try { req = indexedDB.open(DB_NAME, 1); } catch (e) { resolve(null); return; }
+      req.onupgradeneeded = function () {
+        var db0 = req.result;
+        if (!db0.objectStoreNames.contains('files')) db0.createObjectStore('files', { keyPath: 'id' });
+      };
+      req.onerror = function () { resolve(null); };
+      req.onsuccess = function () { resolve(req.result); };
+    }).then(function (db) {
+      if (!db) return null;
+      return new Promise(function (resolve) {
+        var out = null, tx;
+        try {
+          tx = db.transaction('files', mode);
+          out = fn(tx.objectStore('files'));
+        } catch (e) { try { db.close(); } catch (e2) {} resolve(null); return; }
+        tx.oncomplete = function () { try { db.close(); } catch (e2) {} resolve(out); };
+        tx.onerror = function () { resolve(null); };
+        tx.onabort = function () { resolve(null); };
+      });
+    });
+  }
+  function idbDeleteFiles(ids) {
+    if (!ids || !ids.length || !window.indexedDB) return Promise.resolve(0);
+    return withFilesStore('readwrite', function (st) {
+      ids.forEach(function (id) { try { st.delete(id); } catch (e) {} });
+      return ids.length;
+    }).then(function (n) { return n || 0; });
+  }
+  function idbFileCount() {
+    if (!window.indexedDB) return Promise.resolve(null);
+    return withFilesStore('readonly', function (st) {
+      var box = { n: null };
+      var r = st.count();
+      r.onsuccess = function () { box.n = r.result; };
+      return box;
+    }).then(function (box) { return box ? box.n : null; });
+  }
+
+  /* ------------------------------------------------ bulk cleanup */
+  function setText(sel, v) { var el = $(sel); if (el) el.textContent = v; }
+  function refreshStats() {
+    var ev = (L.state && L.state.events) || [];
+    var c = counts(ev);
+    var a = attachStats(ev);
+    setText('#ljcDoneCnt', c.done + '개');
+    setText('#ljcFileCnt', a.files + '개');
+    var stats = document.querySelectorAll('.statgrid .stat b');
+    if (stats.length >= 3) {
+      stats[0].textContent = c.n;
+      stats[1].textContent = c.done;
+      stats[2].textContent = a.files + a.drive;
+    }
+    idbFileCount().then(function (n) { if (n != null) setText('#stLocal', n); });
+  }
+
+  function bulkUncheckAll() {
+    var ev = (L.state && L.state.events) || [];
+    var n = 0;
+    for (var i = 0; i < ev.length; i++) if (ev[i] && ev[i].done) n++;
+    if (!n) { toast('완료 표시된 기록이 없습니다. 이미 모두 미완료입니다.'); return; }
+    if (!L.askConfirm) return;
+    L.askConfirm('전체 체크 해제',
+      '완료 표시된 ' + n + '개 기록을 모두 미완료로 되돌립니다. 제목·날짜·내용(멘트)·링크·★·태그는 그대로 둡니다. 실행 전에 타임머신 스냅샷을 자동으로 저장하니, 문제가 있으면 설정 → 타임머신 스냅샷에서 이 시점으로 되돌릴 수 있습니다.',
+      '모두 해제', function () {
+        var made = pushSnapshot('전체 체크 해제 전 · 완료 ' + n + '개', true);
+        var before = ev.map(function (e) { return !!(e && e.done); });
+        ev.forEach(function (e) { if (e) e.done = false; });
+        L.commit();
+        refreshStats();
+        toast(n + '개 완료 해제됨' + (made ? ' · 스냅샷 저장됨' : ''), function () {
+          ev.forEach(function (e, k) { if (e) e.done = before[k]; });
+          L.commit();
+          refreshStats();
+        });
+      }, true);
+  }
+
+  function bulkClearAttachments() {
+    var ev = (L.state && L.state.events) || [];
+    var a = attachStats(ev);
+    if (!a.files) {
+      toast(a.drive
+        ? '비울 기기·드라이브 첨부가 없습니다. 구글 드라이브 파일 연결 ' + a.drive + '개는 그대로 두었습니다.'
+        : '비울 첨부 파일이 없습니다.');
+      return;
+    }
+    if (!L.askConfirm) return;
+    L.askConfirm('첨부 파일만 일괄 비우기',
+      '기록 ' + a.records + '곳에 붙은 첨부 파일 ' + a.files + '개를 비웁니다. 멘트·내용과 웹 링크 ' + a.links + '개' +
+      (a.drive ? ', 구글 드라이브 파일 연결 ' + a.drive + '개' : '') + '는 그대로 남습니다.' +
+      (a.locals ? ' 이 기기에 저장된 파일 본문 ' + a.locals + '개도 함께 지워지며, 파일 본문은 스냅샷에 담기지 않아 되살릴 수 없습니다.' : '') +
+      ' 구글 드라이브의 원본 파일은 지우지 않습니다. 실행 전에 타임머신 스냅샷을 자동으로 저장합니다.',
+      '첨부 비우기', function () {
+        var made = pushSnapshot('첨부 비우기 전 · 첨부 ' + a.files + '개', true);
+        var localIds = [];
+        ev.forEach(function (e) {
+          if (!e || !e.links) return;
+          var keep = [];
+          e.links.forEach(function (l) {
+            if (isAttach(l)) {
+              if (l.kind === 'local' && l.id) localIds.push(l.id);
+              return;
+            }
+            keep.push(l);
+          });
+          if (keep.length) e.links = keep; else delete e.links;
+        });
+        L.commit();
+        refreshStats();
+        idbDeleteFiles(localIds);
+        toast(a.files + '개 첨부 파일 비움' + (a.drive ? ' · 드라이브 연결 ' + a.drive + '개 유지' : '') + (made ? ' · 스냅샷 저장됨' : ''));
+      }, true);
+  }
+
+  /* ------------------------------------------------ 실시간 자동 동기화
+     · 편집: 1.5초 디바운스 뒤 시트로 자동 저장
+     · 앱을 열거나 화면으로 돌아올 때: 시트의 savedAt 이 이 기기의 마지막 동기화/편집보다
+       (넉넉히) 새로울 때만, 그리고 시트가 비어 있지 않을 때만 반영한다.
+     · push/pull 은 서로 겹치지 않게 inFlight 플래그로 막는다. */
+  var AUTO_KEY = 'ljc_auto_sync';
+  var EDIT_KEY = 'ljc_local_edit_at';
+  var PUSH_DELAY = 1500;
+  var PULL_GAP = 6000;
+  var SKEW = 1500;              // 시계 오차 여유: 이보다 새로워야 '다른 기기 기록'으로 본다
+  var pushTimer = null, chipTimer = null;
+  var pushing = false, pulling = false, pendingPush = false, retries = 0;
+  var lastPullAt = 0, applying = false;
+
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function urlOk(u) {
+    if (!u || !/^https?:\/\//i.test(String(u))) return false;
+    if (/^https:\/\//i.test(String(u))) return true;
+    return /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(String(u));
+  }
+  function autoEnabled() { return lsGet(AUTO_KEY) !== '0' && urlOk(getUrl()); }
+  function tsOf(v) { var t = Date.parse(String(v || '')); return isNaN(t) ? 0 : t; }
+  function localLastTs() { return Math.max(tsOf(lsGet(LAST_KEY)), tsOf(lsGet(EDIT_KEY))); }
+
+  function syncChip(text, kind) {
+    if (!document.body) return;
+    var el = document.getElementById('ljcSyncChip');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'ljcSyncChip';
+      el.className = 'sync-chip';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.className = 'sync-chip show' + (kind ? ' ' + kind : '');
+    clearTimeout(chipTimer);
+    chipTimer = setTimeout(function () {
+      el.className = 'sync-chip' + (kind ? ' ' + kind : '');
+    }, kind === 'err' ? 7000 : 2400);
+  }
+
+  /* 편집이 일어날 때마다 호출된다 (app.js commit 훅) */
+  function markEdit() {
+    if (applying) return;
+    lsSet(EDIT_KEY, new Date().toISOString());
+    if (!autoEnabled()) return;
+    pendingPush = true;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushAuto, PUSH_DELAY);
+  }
+
+  function pushAuto() {
+    if (!autoEnabled()) return;
+    if (pushing || pulling) {           // 겹치지 않게: 끝나고 다시 시도
+      pendingPush = true;
+      clearTimeout(pushTimer);
+      pushTimer = setTimeout(pushAuto, 800);
+      return;
+    }
+    var ev = (L.state && L.state.events) || [];
+    if (!ev.length) return;             // 기기에 기록이 없으면 빈 시트로 덮어쓰지 않는다
+    var url = getUrl();
+    pushing = true;
+    pendingPush = false;
+    syncChip('☁️ 동기화 중…', 'busy');
+    var at = new Date().toISOString();
+    callSheet(url, {
+      action: 'save', app: '이종대왕 달력', version: 1, calendar: '이종대왕 달력',
+      savedAt: at, count: ev.length, events: ev
+    }).then(function (d) {
+      pushing = false;
+      retries = 0;
+      var savedAt = (d && (d.savedAt || d.updatedAt)) || at;
+      lsSet(LAST_KEY, savedAt);
+      syncChip('☁️ 자동 동기화됨', 'ok');
+      setStatus('☁️ 자동 동기화됨 · ' + fmtAt(savedAt) + ' · ' + ((d && d.count) || ev.length) + '개', 'ok');
+      if (pendingPush) {
+        pendingPush = false;
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(pushAuto, 600);
+      }
+    }).catch(function (err) {
+      pushing = false;
+      var m = (err && err.message) ? err.message : '알 수 없는 오류';
+      var offline = (navigator.onLine === false) ||
+        /Failed to fetch|NetworkError|Load failed|Network request failed|timed? ?out/i.test(m);
+      syncChip(offline ? '⚠️ 오프라인 · 기기에 저장됨' : '⚠️ 자동 동기화 실패', 'err');
+      setStatus('자동 동기화 실패: ' + m + ' — 기록은 이 기기에 그대로 저장되어 있습니다.' +
+        (offline ? ' 연결되면 다시 시도합니다.' : ''), 'err');
+      if (retries < 3) {                 // 조용히 몇 번만 다시 시도한다
+        retries++;
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(pushAuto, 5000 * retries);
+      }
+    });
+  }
+
+  function pullIfNewer(opts) {
+    opts = opts || {};
+    if (!autoEnabled()) return Promise.resolve(false);
+    if (pulling || pushing) return Promise.resolve(false);
+    var now = Date.now();
+    if (!opts.ignoreGap && now - lastPullAt < PULL_GAP) return Promise.resolve(false);
+    if (!opts.allowModal && document.body && document.body.classList.contains('modal-open')) {
+      return Promise.resolve(false);      // 편집 중에는 화면을 갈아엎지 않는다
+    }
+    lastPullAt = now;
+    pulling = true;
+    return callSheet(getUrl(), { action: 'load' }).then(function (d) {
+      pulling = false;
+      var arr = (d && d.events instanceof Array) ? d.events : null;
+      if (!arr) return false;
+      var clean = arr.filter(function (e) { return e && validYmd(e.date); });
+      var local = (L.state && L.state.events) || [];
+      var remoteAt = (d && (d.savedAt || d.updatedAt)) || '';
+      var rt = tsOf(remoteAt);
+      /* (1) 시트가 비었거나 시각이 없으면 절대 기기 기록을 지우지 않는다 */
+      if (!clean.length) {
+        if (local.length) setStatus('시트가 비어 있어 이 기기 기록을 그대로 두었습니다.', 'warn');
+        return false;
+      }
+      if (!rt) return false;
+      /* (2) 시트가 같거나 오래되었으면(동률 포함) 그대로 둔다 */
+      if (rt <= localLastTs() + SKEW) return false;
+      var incoming = clean.map(L.normalize);
+      var same = JSON.stringify(incoming) === JSON.stringify(local);
+      lsSet(LAST_KEY, remoteAt);
+      if (same) {
+        setStatus('☁️ 시트가 이미 최신입니다 · ' + fmtAt(remoteAt), 'ok');
+        return false;
+      }
+      applying = true;
+      try {
+        L.state.events = incoming;
+        L.commit();
+      } finally { applying = false; }
+      try { refreshStats(); } catch (e) {}
+      lsSet(EDIT_KEY, remoteAt);
+      syncChip('☁️ 시트에서 ' + incoming.length + '개를 받았습니다', 'ok');
+      setStatus('☁️ 시트에서 ' + incoming.length + '개를 불러왔습니다 · ' + fmtAt(remoteAt), 'ok');
+      return true;
+    }).catch(function (err) {
+      pulling = false;
+      var m = (err && err.message) ? err.message : '';
+      if (m) setStatus('시트 확인 실패: ' + m + ' — 기기 기록은 그대로입니다.', 'err');
+      return false;
+    });
   }
 
   /* ------------------------------------------------ google sheets sync */
@@ -3400,7 +3876,16 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
       '<button type="button" class="btn soft sm" data-x="sheetSave">시트로 저장 (백업)</button>' +
       '<button type="button" class="btn ghost sm" data-x="sheetLoad">시트에서 불러오기</button>' +
       '</div>' +
-      '<p class="x-status" id="ljcSheetStatus">' + esc(lastSyncText()) + '</p>';
+      '<label class="checkline" style="margin-top:9px"><input type="checkbox" id="ljcAutoSync"' + (autoEnabled() ? ' checked' : '') + '> <b>실시간 자동 동기화</b></label>' +
+      '<p class="hint" style="margin-top:2px">켜 두면 기록을 고칠 때마다 1.5초 뒤 시트로 자동 저장하고, 앱을 열거나 화면으로 돌아올 때 시트의 최신 기록을 확인해 바로 반영합니다. 시트가 비어 있을 때는 이 기기 기록을 지우지 않습니다.</p>' +
+      '<p class="x-status" id="ljcSheetStatus">' + esc(lastSyncText()) + '</p>' +
+
+      '<div class="seclabel">일괄 정리</div>' +
+      '<p class="hint" style="margin-top:0">완료 표시나 첨부 파일만 통째로 정리합니다. 제목·날짜·내용(멘트)·웹 링크·구글 드라이브 연결·★·태그는 건드리지 않고, 실행 전에 타임머신 스냅샷을 자동으로 저장합니다.</p>' +
+      '<button type="button" class="setrow" data-x="clearDone"><span class="si">☑️</span>' +
+      '<span class="st2"><b>전체 체크 해제 (모두 미완료로)</b><i>완료 표시 <span id="ljcDoneCnt">' + counts((L.state && L.state.events) || []).done + '개</span>를 미완료로 되돌립니다</i></span><span class="chev">›</span></button>' +
+      '<button type="button" class="setrow" data-x="clearAttach"><span class="si">📎</span>' +
+      '<span class="st2"><b>첨부 파일만 일괄 비우기</b><i>기기·드라이브 첨부 <span id="ljcFileCnt">' + attachStats((L.state && L.state.events) || []).files + '개</span> 비움 · 내용·링크·드라이브 연결은 그대로</i></span><span class="chev">›</span></button>';
   }
 
   /* ------------------------------------------------ wiring */
@@ -3413,14 +3898,79 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     else if (act === 'snapDelete') { e.preventDefault(); deleteSnapshot(b.getAttribute('data-id')); }
     else if (act === 'sheetSave') { e.preventDefault(); sheetSave(); }
     else if (act === 'sheetLoad') { e.preventDefault(); sheetLoad(); }
+    else if (act === 'clearDone') { e.preventDefault(); bulkUncheckAll(); }
+    else if (act === 'clearAttach') { e.preventDefault(); bulkClearAttachments(); }
   });
 
   document.addEventListener('change', function (e) {
     var t = e.target;
-    if (t && t.id === 'ljcSheetUrl') {
-      try { localStorage.setItem(URL_KEY, t.value.trim()); } catch (err) {}
+    if (!t) return;
+    if (t.id === 'ljcSheetUrl') {
+      var v = t.value.trim();
+      lsSet(URL_KEY, v);
+      var acb = $('#ljcAutoSync');           // 주소를 넣으면 토글 표시도 바로 맞춘다
+      if (acb) acb.checked = autoEnabled();
+      if (autoEnabled()) {
+        pullIfNewer({ ignoreGap: true, allowModal: true }).then(function (applied) {
+          if (!applied) {
+            pendingPush = true;
+            clearTimeout(pushTimer);
+            pushTimer = setTimeout(pushAuto, 900);
+          }
+        });
+      }
+      return;
+    }
+    if (t.id === 'ljcAutoSync') {
+      if (t.checked) {
+        if (!urlOk(getUrl())) {
+          lsSet(AUTO_KEY, '0');
+          t.checked = false;
+          setStatus('시트 주소를 먼저 넣고 [시트로 저장]을 한 번 눌러 주세요.', 'err');
+          return;
+        }
+        lsSet(AUTO_KEY, '1');
+        setStatus('☁️ 실시간 자동 동기화를 켰습니다.', 'ok');
+        pullIfNewer({ ignoreGap: true, allowModal: true }).then(function (applied) {
+          if (!applied) {
+            pendingPush = true;
+            clearTimeout(pushTimer);
+            pushTimer = setTimeout(pushAuto, 800);
+          }
+        });
+      } else {
+        lsSet(AUTO_KEY, '0');
+        clearTimeout(pushTimer);
+        retries = 0;
+        setStatus('자동 동기화를 껐습니다. 기록은 이 기기에만 저장됩니다.', '');
+      }
     }
   });
+
+  /* 앱을 열 때 / 화면으로 돌아올 때 시트 확인 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') pullIfNewer({});
+  });
+  window.addEventListener('focus', function () { pullIfNewer({}); });
+  window.addEventListener('online', function () {
+    if (!autoEnabled()) return;
+    pullIfNewer({ ignoreGap: true }).then(function (applied) {
+      if (applied) return;             // 다른 기기의 최신 기록을 먼저 받았다
+      pendingPush = true;
+      clearTimeout(pushTimer);
+      pushTimer = setTimeout(pushAuto, 600);
+    });
+  });
+  setTimeout(function () {
+    if (!autoEnabled()) return;
+    pullIfNewer({ ignoreGap: true }).then(function (applied) {
+      if (!applied && tsOf(lsGet(EDIT_KEY)) > tsOf(lsGet(LAST_KEY)) + 2000) {
+        pendingPush = true;              // 오프라인에서 고친 기록을 올린다
+        clearTimeout(pushTimer);
+        pushTimer = setTimeout(pushAuto, 1200);
+      }
+    });
+  }, 1200);
 
   window.__ljcX = {
     settingsHtml: settingsHtml,
@@ -3428,7 +3978,21 @@ try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboa
     restoreSnapshot: restoreSnapshot,
     sheetSave: sheetSave,
     sheetLoad: sheetLoad,
-    readSnaps: readSnaps
+    bulkUncheckAll: bulkUncheckAll,
+    bulkClearAttachments: bulkClearAttachments,
+    attachStats: attachStats,
+    readSnaps: readSnaps,
+    autoEnabled: autoEnabled,
+    pushAuto: pushAuto,
+    pullIfNewer: pullIfNewer
+  };
+
+  /* app.js 의 commit 훅이 부른다 */
+  window.__ljcSync = {
+    onEdit: markEdit,
+    push: pushAuto,
+    pull: pullIfNewer,
+    enabled: autoEnabled
   };
 })();
 

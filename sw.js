@@ -5,7 +5,7 @@
      · 화면 이동(navigation): Network-first (새 버전이 있으면 바로 반영, 오프라인이면 캐시)
      · 그 밖의 정적 파일: Cache-first + 뒤에서 갱신(stale-while-revalidate)
    기록 데이터는 여기에 오지 않습니다. 기록은 브라우저 localStorage에만 있습니다. */
-const CACHE = 'ljc-shell-v1';
+const CACHE = 'ljc-shell-v2';
 const ASSETS = [
   './',
   './index.html',
