@@ -1,0 +1,3077 @@
+<!doctype html>
+<!--
+  이종대왕 달력 — 교실 기록 관리용 설치형 웹앱(PWA)
+  · 이 파일에는 어떤 개인 기록도 들어 있지 않습니다 (INITIAL_EVENTS = []).
+  · 기록을 불러오려면 화면 오른쪽 위 설정(⚙) → 'JSON 불러오기'.
+  · 편집 원본: work/leejong/app/{style.css, body.html, app.js} + work/leejong/pwa-src/*
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#16a34a">
+<meta name="description" content="교실 기록을 달력·목록으로 관리하는 설치형 웹앱. 기록은 서버가 아니라 이 기기 브라우저에만 저장됩니다.">
+<title>이종대왕 달력</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316a34a'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='white' font-family='sans-serif'%3E%EC%9D%B4%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="이종대왕">
+<style>
+:root {
+  --accent: #16a34a;
+  --accent-ink: #15803d;
+  --accent-soft: #e9f9ef;
+  --accent-line: #9fe0bb;
+  --done: #9ca3af;
+  --done-soft: #f2f4f2;
+  --done-line: #d6dbd6;
+  --bg: #f5f7f4;
+  --card: #ffffff;
+  --ink: #111827;
+  --ink-2: #374151;
+  --sub: #6b7280;
+  --line: #e3e7e2;
+  --line-2: #edf0ec;
+  --tagbg: rgba(255, 255, 255, .78);
+  --sun: #dc2626;
+  --sat: #2563eb;
+  --star: #e08c00;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+  --shadow: 0 2px 6px rgba(16, 24, 40, .06), 0 12px 28px rgba(16, 24, 40, .07);
+  --radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #22c55e;
+    --accent-ink: #5ee08c;
+    --accent-soft: #12301d;
+    --accent-line: #1f6b3c;
+    --done: #7c857e;
+    --done-soft: #1c201d;
+    --done-line: #2a302b;
+    --bg: #0e1210;
+    --card: #161a17;
+    --ink: #f1f5f1;
+    --ink-2: #cfd6d0;
+    --sub: #98a29a;
+    --line: #2a302b;
+    --line-2: #202521;
+    --tagbg: rgba(255, 255, 255, .09);
+    --sun: #f87171;
+    --sat: #7ea8ff;
+    --star: #fbbf24;
+    --shadow-sm: none;
+    --shadow: 0 2px 10px rgba(0, 0, 0, .4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+    "Noto Sans KR", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+  overflow-wrap: break-word;
+}
+
+body.modal-open { overflow: hidden; }
+
+button { font: inherit; color: inherit; }
+
+h1, h2, h3, p { margin: 0; }
+
+.app {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 12px calc(96px + env(safe-area-inset-bottom));
+}
+
+/* ---------- head ---------- */
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg);
+  padding: 10px 2px 8px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.head-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
+
+.mark {
+  width: 34px; height: 34px; flex: none;
+  border-radius: 11px;
+  background: linear-gradient(160deg, #22c55e, #15803d);
+  color: #fff;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 16px;
+  letter-spacing: -.03em;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, .28);
+}
+
+.brand-txt { min-width: 0; }
+
+.brand-txt h1 {
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-sub {
+  font-size: 11.5px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.head-right { display: flex; align-items: center; gap: 6px; flex: none; }
+
+.seg {
+  display: flex;
+  background: var(--line-2);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+@media (prefers-color-scheme: dark) { .seg { background: #1d221e; } }
+
+.seg button {
+  border: 0;
+  background: none;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sub);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+
+.seg button.on {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 15px;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+
+.icon-btn:active { background: var(--line-2); }
+
+.head-nav {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+  flex: none;
+}
+
+.nav-btn {
+  width: 30px; height: 32px;
+  border: 0; background: none;
+  border-radius: 8px;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.nav-btn:active { background: var(--line-2); }
+
+.nav-title {
+  border: 0; background: none;
+  padding: 5px 4px;
+  min-width: 96px;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.nav-title:active { background: var(--line-2); }
+
+.today-btn {
+  flex: none;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.search {
+  flex: 1 1 150px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 9px;
+  height: 36px;
+  box-shadow: var(--shadow-sm);
+}
+
+.search svg { flex: none; color: var(--sub); }
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: inherit;
+  height: 100%;
+}
+
+.search input::-webkit-search-cancel-button { display: none; }
+
+.search-clear {
+  border: 0; background: var(--line-2);
+  color: var(--sub);
+  width: 20px; height: 20px;
+  border-radius: 999px;
+  font-size: 11px;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+
+/* ---------- chips ---------- */
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 9px 2px 3px;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex: none;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip.on {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+
+.chip .n {
+  font-size: 10.5px;
+  opacity: .6;
+  margin-left: 3px;
+  font-weight: 700;
+}
+
+/* ---------- status bar ---------- */
+.statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px 8px;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.statusbar b { color: var(--ink-2); font-weight: 700; }
+
+.mini-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--sub);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  flex: none;
+}
+
+.mini-btn.on {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+
+/* ---------- month grid ---------- */
+.dowbar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  padding-bottom: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--sub);
+  text-align: center;
+}
+
+.dowbar span:first-child { color: var(--sun); }
+.dowbar span:last-child { color: var(--sat); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cell {
+  min-height: 110px;
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  padding: 4px 4px 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  position: relative;
+  transition: background .12s, border-color .12s;
+}
+
+.cell.pad { background: transparent; border-color: transparent; }
+.cell.pad .dnum { color: var(--sub); opacity: .55; }
+.cell.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.cell.drop { background: var(--accent-soft); border-color: var(--accent); border-style: dashed; }
+
+.dnum {
+  align-self: flex-start;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell.sun .dnum { color: var(--sun); }
+.cell.sat .dnum { color: var(--sat); }
+.cell.today .dnum { background: var(--accent); color: #fff; }
+
+.pills { display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1; }
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  border-left: 2.5px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 10.8px;
+  line-height: 1.3;
+  padding: 2.5px 4px;
+  cursor: pointer;
+  transition: filter .1s, opacity .1s;
+}
+
+.pill:hover { filter: brightness(.97); }
+.pill.dragging { opacity: .35; }
+.pill .tt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.pill .st { flex: none; font-size: 8.5px; color: var(--star); }
+.pill .tag {
+  flex: none;
+  max-width: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--tagbg);
+}
+.pill .fxb {
+  flex: none;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  padding: 0 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .55);
+  color: var(--accent-ink);
+}
+
+@media (prefers-color-scheme: dark) { .pill .fxb { background: rgba(255, 255, 255, .1); } }
+
+.pill.done {
+  background: var(--done-soft);
+  border-left-color: var(--done-line);
+  color: var(--done);
+}
+.pill.done .tt { opacity: .95; }
+.pill.done .st, .pill.done .tag, .pill.done .fxb { opacity: .55; }
+
+.pill .pchk {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  border: 1.2px solid currentColor;
+  display: grid;
+  place-items: center;
+  font-size: 7.5px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity .1s, background .1s;
+}
+
+.pill:hover .pchk { opacity: .8; background: rgba(255, 255, 255, .75); }
+.pill.done .pchk { background: var(--done); border-color: var(--done); color: #fff; opacity: .75; }
+
+.more {
+  border: 0;
+  background: none;
+  color: var(--sub);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: left;
+  padding: 0 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex: none;
+}
+
+.more:hover { background: var(--line-2); }
+
+/* ---------- list ---------- */
+.list-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 8px;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.month-group { margin-bottom: 14px; }
+
+.month-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 4px 3px 7px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.month-head span { font-size: 11.5px; font-weight: 600; color: var(--sub); }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  padding: 8px 11px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: border-color .12s;
+}
+
+.row:hover { border-color: var(--line); }
+
+.row .date {
+  flex: none;
+  width: 42px;
+  text-align: center;
+  line-height: 1.1;
+  font-size: 10.5px;
+  color: var(--sub);
+  font-weight: 600;
+}
+
+.row .date b { display: block; font-size: 16px; font-weight: 800; color: var(--ink-2); letter-spacing: -.03em; line-height: 1.1; }
+.row .date span { display: block; font-size: 9.5px; font-weight: 600; color: var(--sub); margin-top: 2px; white-space: nowrap; }
+.row.sun .date b { color: var(--sun); }
+.row.sat .date b { color: var(--sat); }
+
+.row .mid { flex: 1; min-width: 0; }
+
+.row .title {
+  font-size: 13.8px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row.done .title { color: var(--done); text-decoration: line-through; }
+.row.done .meta { opacity: .7; }
+
+.row .meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--sub);
+}
+
+.row .meta .m-tag { color: var(--accent-ink); font-weight: 700; }
+.row .meta .m-fx { font-weight: 700; color: var(--sub); }
+.row .meta .m-star { color: var(--star); font-weight: 700; }
+
+.chk {
+  flex: none;
+  width: 27px; height: 27px;
+  border-radius: 9px;
+  border: 1.5px solid var(--done-line);
+  background: var(--card);
+  color: transparent;
+  display: grid; place-items: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chk.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.empty {
+  text-align: center;
+  padding: 42px 16px;
+  color: var(--sub);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.empty b { display: block; color: var(--ink-2); font-size: 15px; margin-bottom: 4px; }
+
+/* ---------- fab ---------- */
+.fab {
+  position: fixed;
+  right: 14px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 18px 13px 15px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, .34), 0 1px 3px rgba(0, 0, 0, .12);
+}
+
+.fab:active { transform: translateY(1px); }
+.fab .plus { font-size: 16px; line-height: 1; margin-top: -1px; }
+
+/* ---------- overlay & sheet ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(10, 16, 12, .44);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.overlay.in { opacity: 1; }
+
+.sheet {
+  width: 100%;
+  max-width: 640px;
+  max-height: 92vh;
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, .22);
+  transform: translateY(16px);
+  transition: transform .2s ease;
+}
+
+.overlay.in .sheet { transform: none; }
+
+@media (min-width: 720px) {
+  .overlay { align-items: center; padding: 26px; }
+  .sheet { border-radius: 18px; max-height: 86vh; box-shadow: var(--shadow); }
+}
+
+.sheet-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 15px 15px 7px;
+  flex: none;
+}
+
+.sheet-top .grow { flex: 1; min-width: 0; }
+
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--sub);
+  letter-spacing: .01em;
+  margin-bottom: 3px;
+}
+
+.sheet-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.xbtn {
+  flex: none;
+  width: 32px; height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--line-2);
+  color: var(--sub);
+  font-size: 13px;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 15px 12px;
+  flex: 1;
+}
+
+.sheet-foot {
+  flex: none;
+  display: flex;
+  gap: 7px;
+  padding: 10px 15px calc(11px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-2);
+  background: var(--card);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 720px) {
+  .sheet-foot { padding-bottom: 12px; }
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 42px;
+  padding: 9px 13px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: var(--line-2);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 750;
+  cursor: pointer;
+  flex: 1 1 auto;
+  transition: filter .1s, background .12s;
+}
+
+.btn:active { filter: brightness(.96); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.soft { background: var(--accent-soft); color: var(--accent-ink); }
+.btn.ghost { background: var(--card); border-color: var(--line); color: var(--ink-2); }
+.btn.danger { background: var(--card); border-color: #f2c9c9; color: #b91c1c; }
+@media (prefers-color-scheme: dark) { .btn.danger { border-color: #6b2b2b; color: #f87171; } }
+.btn.block { width: 100%; flex: none; }
+.btn.grow0 { flex: none; }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.btn.sm { min-height: 36px; padding: 6px 11px; font-size: 12.5px; }
+
+/* ---------- detail ---------- */
+.done-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 9px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.done-toggle.on { background: var(--done-soft); border-color: transparent; color: var(--done); }
+
+.done-toggle .box {
+  flex: none;
+  width: 21px; height: 21px;
+  border-radius: 7px;
+  border: 1.5px solid var(--done-line);
+  background: var(--card);
+  display: grid; place-items: center;
+  font-size: 11px;
+  color: transparent;
+}
+
+.done-toggle.on .box { background: var(--accent); border-color: var(--accent); color: #fff; }
+.done-toggle .lbl { flex: 1; }
+.done-toggle .hint2 { font-size: 11px; color: var(--sub); font-weight: 600; }
+
+.tagrow { display: flex; flex-wrap: wrap; margin-top: 8px; }
+
+.tagpill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  margin: 0 4px 4px 0;
+}
+
+.descbox {
+  margin-top: 10px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 11px 13px;
+  max-height: 40vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.descbox.open { max-height: none; }
+
+.descbox.clipped:not(.open) {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+}
+
+.desc {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.72;
+  color: var(--ink-2);
+}
+
+.desc .dl { color: var(--accent-ink); text-decoration: underline; word-break: break-all; }
+
+.desc-empty { color: var(--sub); font-size: 13px; }
+
+.moretxt {
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 0 0;
+  cursor: pointer;
+}
+
+.seclabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--sub);
+  letter-spacing: .01em;
+}
+
+.seclabel .cnt { font-weight: 700; color: var(--sub); opacity: .8; }
+
+.filerow, .linkrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  margin-bottom: 5px;
+  background: var(--card);
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.filerow:active, .linkrow:active { background: var(--line-2); }
+
+.filerow .fname, .linkrow .lname, .filerow .fsub, .linkrow .lsub { display: block; }
+
+.filerow .fname, .linkrow .lname {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filerow .fsub, .linkrow .lsub {
+  font-size: 10.5px;
+  color: var(--sub);
+  font-weight: 600;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filerow .go, .linkrow .go { flex: none; color: var(--sub); font-size: 12px; }
+
+.fx {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: #eef0ee;
+  color: #4b5563;
+  min-width: 30px;
+  text-align: center;
+}
+
+.fx.ppt { background: #fff0e6; color: #c2410c; }
+.fx.hwp { background: #e7f0ff; color: #1d4ed8; }
+.fx.pdf { background: #ffe9e9; color: #c02626; }
+.fx.sheet { background: #e7f7ec; color: #15803d; }
+
+@media (prefers-color-scheme: dark) {
+  .fx { background: #23282a; color: #b6c0b8; }
+  .fx.ppt { background: #3a2415; color: #fdba74; }
+  .fx.hwp { background: #16233d; color: #93b4ff; }
+  .fx.pdf { background: #3a1a1a; color: #fca5a5; }
+  .fx.sheet { background: #17301f; color: #86efac; }
+}
+
+/* ---------- forms ---------- */
+.field { margin: 0 0 12px; }
+.row2 { display: flex; gap: 8px; }
+.row2 > .field { flex: 1; }
+
+.flabel {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--sub);
+  margin-bottom: 5px;
+}
+
+.input, .textarea, .select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 11px;
+  padding: 9px 11px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  outline: none;
+  min-height: 42px;
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, .13);
+}
+
+.textarea { min-height: 148px; resize: vertical; line-height: 1.65; }
+
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.checkline input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--sub);
+  line-height: 1.55;
+  margin-top: 6px;
+}
+
+.suggest { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+
+.suggest button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sub);
+  cursor: pointer;
+}
+
+.linkedit { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+.linkedit .input { min-height: 38px; font-size: 13.5px; padding: 7px 9px; }
+.linkedit .nm { flex: 1 1 34%; min-width: 0; }
+.linkedit .ur { flex: 1 1 50%; min-width: 0; }
+
+.icon-mini {
+  flex: none;
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--sub);
+  display: grid; place-items: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.moverow { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.moverow .input { flex: 1; min-height: 40px; padding: 7px 9px; font-size: 14px; }
+.moverow .btn { flex: none; }
+
+/* ---------- settings ---------- */
+.statgrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 6px 0 4px;
+}
+
+.stat {
+  background: var(--bg);
+  border-radius: 11px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.stat b { display: block; font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+.stat span { font-size: 10.5px; color: var(--sub); font-weight: 600; }
+
+.setrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line-2);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  min-height: 52px;
+}
+
+.setrow:active { background: var(--line-2); }
+
+.setrow .si { flex: none; width: 24px; text-align: center; font-size: 15px; }
+
+.setrow .st2 { flex: 1; min-width: 0; }
+.setrow .st2 b { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.setrow .st2 i {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 1px;
+  line-height: 1.45;
+}
+
+.setrow .chev { flex: none; color: var(--sub); font-size: 15px; }
+
+.radio {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.radio input { margin-top: 2px; accent-color: var(--accent); width: 17px; height: 17px; }
+.radio b { display: block; font-size: 13px; font-weight: 700; }
+.radio i { display: block; font-style: normal; font-size: 11.5px; color: var(--sub); margin-top: 1px; }
+.radio.on { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- shift preview ---------- */
+.shift-summary {
+  font-size: 12.5px;
+  color: var(--sub);
+  padding: 8px 2px;
+  font-weight: 600;
+}
+
+.shift-summary b { color: var(--accent-ink); }
+
+.srow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 12.5px;
+}
+
+.srow input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.srow .sdate { flex: none; width: 108px; font-weight: 700; color: var(--ink-2); line-height: 1.4; }
+.srow .sdate em { font-style: normal; display: block; font-size: 10.5px; color: var(--sub); font-weight: 600; }
+.srow .stitle { flex: 1; min-width: 0; line-height: 1.4; }
+.srow .note { display: block; font-size: 10.5px; color: var(--sun); margin-top: 1px; }
+.srow.bad .sdate, .srow.bad .stitle { color: var(--done); text-decoration: line-through; }
+
+/* ---------- month picker ---------- */
+.mp-year {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 2px 10px;
+}
+
+.mp-year b { font-size: 15px; font-weight: 800; }
+
+.mp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+.mp-grid button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 11px;
+  padding: 13px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.mp-grid button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mp-grid button.has { color: var(--accent-ink); }
+
+/* ---------- day sheet ---------- */
+.daylist .row { margin-bottom: 5px; }
+
+/* ---------- toast ---------- */
+.toasts.above {
+  bottom: auto;
+  top: calc(12px + env(safe-area-inset-top));
+}
+
+.toasts {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+
+.toast {
+  pointer-events: auto;
+  background: #141a16;
+  color: #f2f5f2;
+  border-radius: 11px;
+  padding: 9px 13px;
+  font-size: 12.8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .26);
+  max-width: 100%;
+  opacity: 1;
+  transform: none;
+  transition: opacity .18s, transform .18s;
+}
+
+.toast.out { opacity: 0; transform: translateY(6px); }
+
+.toast button {
+  border: 0;
+  background: none;
+  color: #86efac;
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ---------- small screens ---------- */
+@media (max-width: 1099px) {
+  .pill .tag { display: none; }
+}
+
+@media (max-width: 680px) {
+  .app { padding: 0 8px calc(92px + env(safe-area-inset-bottom)); }
+  .head { padding: 8px 2px 7px; }
+  .mark { width: 30px; height: 30px; border-radius: 10px; font-size: 14px; }
+  .brand-txt h1 { font-size: 15.5px; }
+  .brand-sub { font-size: 10.5px; }
+  .seg button { padding: 6px 9px; font-size: 12px; }
+  .icon-btn { width: 32px; height: 32px; }
+  .head-nav { gap: 5px; }
+  .nav-btn { width: 27px; height: 30px; }
+  .nav-title { min-width: 84px; font-size: 13.5px; }
+  .today-btn { padding: 8px 10px; font-size: 12px; }
+  .search { height: 34px; flex: 1 1 100%; order: 3; }
+  .search input { font-size: 16px; }
+  .chips { padding: 8px 2px 2px; }
+  .statusbar { padding: 2px 2px 6px; font-size: 11.5px; }
+  .grid { gap: 3px; }
+  .cell { min-height: 78px; border-radius: 8px; padding: 3px 1.5px 2px; gap: 1px; }
+  .dnum { font-size: 10px; min-width: 17px; height: 17px; padding: 0 3px; }
+  .pill { font-size: 9.2px; padding: 1.5px 2px; border-left-width: 2px; border-radius: 4px; gap: 1.5px; letter-spacing: -.02em; align-items: flex-start; line-height: 1.22; }
+  .pill .tt { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.22; }
+  .pill .tag { display: none; }
+  .pill .pchk { display: none; }
+  .pill .fxb { font-size: 7px; padding: 0 1px; }
+  .pill .st { font-size: 7.5px; }
+  .more { font-size: 9.5px; padding: 0 2px; }
+  .dowbar { font-size: 10px; gap: 3px; padding-bottom: 4px; }
+  .row { padding: 7px 9px; gap: 8px; }
+  .row .date { width: 34px; }
+  .row .title { font-size: 13.2px; }
+  .statgrid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .stat b { font-size: 16px; }
+  .srow .sdate { width: 92px; font-size: 11.5px; }
+}
+
+@media (max-width: 400px) {
+  .cell { min-height: 72px; }
+  .brand-sub { display: none; }
+  .pill { font-size: 8.7px; line-height: 1.2; letter-spacing: -.02em; }
+  .more { font-size: 9px; }
+}
+
+@media print {
+  .head, .fab, .statusbar, .chips, .sheet-foot, .overlay { display: none !important; }
+}
+
+</style>
+<style>
+/* ===== 공개 배포용 껍데기(shell) 추가 스타일 =====
+   - 첫 설치 안내 배너
+   - 기록이 하나도 없을 때의 빈 상태 안내
+   - 초기 데이터가 비어 있으므로 '초기 캘린더 데이터로 복원'(0개로 되돌리기) 줄은 숨긴다 */
+body .setrow[data-act="restore"]{ display:none !important; }
+
+.ljc-banner{
+  margin: 10px 14px 0;
+  padding: 12px 13px;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  background: #f0fdf4;
+  color: #14532d;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ljc-banner .ljc-b-ic{ font-size: 18px; line-height: 1.2; flex: none; }
+.ljc-banner .ljc-b-body{ flex: 1 1 auto; min-width: 0; }
+.ljc-banner b{ display: block; font-size: 13.5px; margin-bottom: 2px; }
+.ljc-banner p{ margin: 0; color: #166534; }
+.ljc-banner .ljc-b-acts{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.ljc-banner .ljc-b-btn{
+  appearance: none; border: 1px solid #16a34a; background: #16a34a; color: #fff;
+  border-radius: 9px; padding: 6px 11px; font: inherit; font-size: 12.5px; font-weight: 700;
+  cursor: pointer;
+}
+.ljc-banner .ljc-b-btn.ghost{ background: #fff; color: #15803d; }
+.ljc-banner .ljc-b-x{
+  appearance: none; border: 0; background: transparent; color: #15803d;
+  font-size: 16px; line-height: 1; padding: 2px 4px; cursor: pointer; flex: none;
+}
+@media (prefers-color-scheme: dark){
+  .ljc-banner{ background: rgba(22,163,74,.14); border-color: rgba(34,197,94,.35); color: #dcfce7; }
+  .ljc-banner p{ color: #bbf7d0; }
+  .ljc-banner .ljc-b-btn.ghost{ background: transparent; color: #86efac; border-color: #22c55e; }
+  .ljc-banner .ljc-b-x{ color: #86efac; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <div class="head-top">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">이</div>
+        <div class="brand-txt">
+          <h1>이종대왕 달력</h1>
+          <p class="brand-sub" id="brandSub">이종대왕 달력</p>
+        </div>
+      </div>
+      <div class="head-right">
+        <div class="seg" id="viewSeg" role="tablist" aria-label="보기 방식">
+          <button type="button" data-view="month" class="on" role="tab" aria-selected="true">월간</button>
+          <button type="button" data-view="list" role="tab" aria-selected="false">목록</button>
+        </div>
+        <button type="button" class="icon-btn" id="btnSettings" aria-label="설정과 백업">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div class="head-nav">
+      <div class="nav">
+        <button type="button" class="nav-btn" id="btnPrev" aria-label="이전 달">‹</button>
+        <button type="button" class="nav-title" id="btnMonthPick" aria-label="연월 선택"><span id="monthLabel">2026년 11월</span></button>
+        <button type="button" class="nav-btn" id="btnNext" aria-label="다음 달">›</button>
+      </div>
+      <button type="button" class="today-btn" id="btnToday">오늘</button>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="searchInput" type="search" inputmode="search" placeholder="제목·멘트·태그 검색" autocomplete="off" aria-label="검색">
+        <button type="button" class="search-clear" id="searchClear" hidden aria-label="검색어 지우기">✕</button>
+      </div>
+    </div>
+    <div class="ljc-banner" id="ljcBanner" hidden>
+      <span class="ljc-b-ic" aria-hidden="true">📥</span>
+      <div class="ljc-b-body">
+        <b>이 기기에는 아직 기록이 없어요</b>
+        <p>가지고 있는 백업 파일(JSON)을 불러오면 바로 채워집니다. 새 기록은 오른쪽 아래 <b style="display:inline">＋기록</b>으로 추가하세요.</p>
+        <div class="ljc-b-acts">
+          <button type="button" class="ljc-b-btn" data-ljc="import">JSON 불러오기</button>
+          <button type="button" class="ljc-b-btn ghost" data-ljc="settings">설정 열기</button>
+        </div>
+      </div>
+      <button type="button" class="ljc-b-x" data-ljc="close" aria-label="안내 닫기">✕</button>
+    </div>
+  </header>
+
+  <div class="chips" id="chips" aria-label="태그 필터"></div>
+
+  <div class="statusbar">
+    <div id="statusText">이번 달 기록</div>
+    <button type="button" class="mini-btn" id="btnHideDone" aria-pressed="false">완료 숨기기</button>
+  </div>
+
+  <main>
+    <section id="monthView">
+      <div class="dowbar" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+      <div class="grid" id="grid"></div>
+      <div id="monthEmpty" hidden></div>
+    </section>
+    <section id="listView" hidden>
+      <div class="list-top">
+        <span id="listCount">0개</span>
+        <button type="button" class="mini-btn" id="btnSort">오래된 순</button>
+      </div>
+      <div id="list"></div>
+    </section>
+  </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<button type="button" class="fab" id="btnAdd" aria-label="기록 추가"><span class="plus">＋</span>기록</button>
+
+<script type="application/json" id="initial-data">{"meta": {"calendarTitle": "이종대왕 달력", "source": "local"}, "events": []}</script>
+
+<script>
+/* 첫 실행에는 기록이 0개이므로 '기록 0개를 불러왔습니다' 안내를 띄우지 않는다 */
+try { if (!localStorage.getItem('ljc_state_v1')) localStorage.setItem('ljc_onboarded', '1'); } catch (e) {}
+</script>
+<script>
+/* 이종대왕 달력 — 단일 파일 앱 로직 */
+(function () {
+  'use strict';
+
+  var INITIAL = JSON.parse(document.getElementById('initial-data').textContent);
+  var STORE_KEY = 'ljc_state_v1';
+  var DB_NAME = 'ljc_files_v1';
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  var storageOk = true;
+
+  /* ---------------- utils ---------------- */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseYmd(s) {
+    var p = String(s || '').split('-');
+    if (p.length !== 3) return null;
+    var d = new Date(+p[0], +p[1] - 1, +p[2], 12);
+    if (isNaN(d.getTime())) return null;
+    return d;
+  }
+  function validYmd(s) { var d = parseYmd(s); return !!d && ymd(d) === String(s); }
+  function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+  function daysInMonth(y, m) { return new Date(y, m, 0, 12).getDate(); }
+  function todayYmd() { return ymd(new Date()); }
+  function fmtDay(s) {
+    var d = parseYmd(s);
+    if (!d) return String(s || '');
+    return d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '. (' + DOW[d.getDay()] + ')';
+  }
+  function fmtFull(s) {
+    var d = parseYmd(s);
+    if (!d) return String(s || '');
+    return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ')';
+  }
+  function fmtShort(s) {
+    var d = parseYmd(s);
+    if (!d) return '';
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' (' + DOW[d.getDay()] + ')';
+  }
+  function uid(p) { return (p || 'e') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function ymOf(s) { return String(s || '').slice(0, 7); }
+
+  function extOf(name, mime) {
+    var low = String(name || '').toLowerCase();
+    var list = ['hwpx', 'hwp', 'pptx', 'ppt', 'pdf', 'xlsx', 'xls', 'docx', 'doc', 'zip', 'png', 'jpg', 'jpeg'];
+    for (var i = 0; i < list.length; i++) {
+      if (low.slice(-(list[i].length + 1)) === '.' + list[i]) return list[i];
+    }
+    if (mime) {
+      if (mime.indexOf('presentation') >= 0) return 'ppt';
+      if (mime.indexOf('pdf') >= 0) return 'pdf';
+      if (mime.indexOf('spreadsheet') >= 0) return 'xls';
+      if (mime.indexOf('image') >= 0) return 'img';
+      if (mime.indexOf('word') >= 0) return 'doc';
+    }
+    return '';
+  }
+
+  function fxClass(ext) {
+    var e = String(ext || '').toLowerCase();
+    if (e === 'ppt' || e === 'pptx') return 'fx ppt';
+    if (e === 'hwp' || e === 'hwpx') return 'fx hwp';
+    if (e === 'pdf') return 'fx pdf';
+    if (e === 'xls' || e === 'xlsx') return 'fx sheet';
+    return 'fx';
+  }
+  function fxLabel(ext) {
+    var e = String(ext || '').toUpperCase();
+    if (!e) return 'FILE';
+    if (e === 'PPTX') return 'PPT';
+    if (e === 'XLSX') return 'XLS';
+    if (e === 'JPEG') return 'JPG';
+    return e.slice(0, 4);
+  }
+
+  /* ---------------- state ---------------- */
+  function normalize(ev) {
+    var o = {
+      id: ev.id || uid(),
+      date: ev.date,
+      title: String(ev.title == null ? '' : ev.title),
+      done: !!ev.done,
+      star: !!ev.star
+    };
+    if (ev.end) o.end = ev.end;
+    if (ev.desc) o.desc = String(ev.desc);
+    if (ev.tags && ev.tags.length) o.tags = ev.tags.slice(0, 8);
+    if (ev.links && ev.links.length) {
+      o.links = ev.links.map(function (l) {
+        var x = { name: l.name || '', url: l.url || '' };
+        if (l.kind) x.kind = l.kind;
+        if (l.ext) x.ext = l.ext;
+        if (l.mime) x.mime = l.mime;
+        if (l.size) x.size = l.size;
+        if (l.id) x.id = l.id;
+        return x;
+      });
+    }
+    return o;
+  }
+
+  function loadState() {
+    var fallback = { events: INITIAL.events.map(normalize), prefs: {} };
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && p.events instanceof Array) {
+          return { events: p.events.map(normalize), prefs: p.prefs || {} };
+        }
+      }
+    } catch (e) {
+      if (window.console) console.warn('저장된 데이터를 읽지 못했습니다', e);
+    }
+    return fallback;
+  }
+
+  var state = loadState();
+
+  function defaultYm() {
+    var t = ymOf(todayYmd());
+    var months = {};
+    state.events.forEach(function (e) { months[ymOf(e.date)] = 1; });
+    if (months[t]) return t;
+    var keys = Object.keys(months).sort();
+    if (!keys.length) return t;
+    if (t < keys[0]) return keys[0];
+    return keys[keys.length - 1];
+  }
+
+  var prefs = state.prefs || {};
+  var ui = {
+    view: prefs.view === 'list' ? 'list' : 'month',
+    ym: validYmd((prefs.ym || '') + '-01') ? prefs.ym : defaultYm(),
+    q: '',
+    tag: '',
+    hideDone: !!prefs.hideDone,
+    sortAsc: prefs.sortAsc !== false,
+    chipsOpen: false
+  };
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        v: 1,
+        events: state.events,
+        prefs: { view: ui.view, ym: ui.ym, hideDone: ui.hideDone, sortAsc: ui.sortAsc },
+        savedAt: new Date().toISOString()
+      }));
+      storageOk = true;
+    } catch (e) {
+      if (storageOk) {
+        storageOk = false;
+        toast('저장 공간이 부족해 이번 변경은 이 화면에만 남습니다.');
+      }
+    }
+  }
+
+  var pendingListScroll = false;
+  var idx = {};
+  function cmpEvent(a, b) {
+    if (!!a.star !== !!b.star) return a.star ? -1 : 1;
+    if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+    return String(a.title).localeCompare(String(b.title), 'ko');
+  }
+  function rebuildIndex() {
+    idx = {};
+    state.events.forEach(function (ev) {
+      var d = parseYmd(ev.date);
+      if (!d) return;
+      var end = ev.end ? parseYmd(ev.end) : d;
+      if (!end || end.getTime() < d.getTime()) end = d;
+      var guard = 0;
+      while (d.getTime() <= end.getTime() && guard < 400) {
+        var k = ymd(d);
+        (idx[k] || (idx[k] = [])).push(ev);
+        d = addDays(d, 1);
+        guard++;
+      }
+    });
+    Object.keys(idx).forEach(function (k) { idx[k].sort(cmpEvent); });
+  }
+
+  function eventsOn(ds) { return (idx[ds] || []).slice(); }
+  function findEv(id) {
+    for (var i = 0; i < state.events.length; i++) if (state.events[i].id === id) return state.events[i];
+    return null;
+  }
+  function findIdx(id) {
+    for (var i = 0; i < state.events.length; i++) if (state.events[i].id === id) return i;
+    return -1;
+  }
+
+  function match(ev, q, tag, hideDone) {
+    if (hideDone && ev.done) return false;
+    if (tag && (ev.tags || []).indexOf(tag) < 0) return false;
+    if (!q) return true;
+    var tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return true;
+    var links = (ev.links || []).map(function (l) { return (l.name || '') + ' ' + (l.url || ''); }).join(' ');
+    var hay = (ev.title + ' ' + (ev.desc || '') + ' ' + (ev.tags || []).join(' ') + ' ' + links).toLowerCase();
+    return tokens.every(function (t) { return hay.indexOf(t.replace(/^#/, '')) >= 0; });
+  }
+
+  function visibleEvents() {
+    return state.events.filter(function (ev) { return match(ev, ui.q, ui.tag, ui.hideDone); });
+  }
+
+  function commit() {
+    rebuildIndex();
+    saveState();
+    render();
+  }
+
+  /* ---------------- header / chips / status ---------------- */
+  function renderHead() {
+    $('#brandSub').textContent = '이종대왕 달력 · 기록 ' + state.events.length;
+    var y = +ui.ym.slice(0, 4), m = +ui.ym.slice(5, 7);
+    $('#monthLabel').textContent = y + '년 ' + m + '월';
+    $$('#viewSeg button').forEach(function (b) {
+      var on = b.getAttribute('data-view') === ui.view;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $('#monthView').hidden = ui.view !== 'month';
+    $('#listView').hidden = ui.view !== 'list';
+    $('#btnHideDone').classList.toggle('on', ui.hideDone);
+    $('#btnHideDone').setAttribute('aria-pressed', ui.hideDone ? 'true' : 'false');
+    $('#btnHideDone').textContent = ui.hideDone ? '완료 숨김' : '완료 숨기기';
+    $('#searchClear').hidden = !ui.q;
+    if ($('#searchInput').value !== ui.q) $('#searchInput').value = ui.q;
+    $('#btnSort').textContent = ui.sortAsc ? '오래된 순' : '최신 순';
+  }
+
+  function tagCounts() {
+    var map = {};
+    state.events.forEach(function (ev) {
+      (ev.tags || []).forEach(function (t) { map[t] = (map[t] || 0) + 1; });
+    });
+    return Object.keys(map).map(function (t) { return [t, map[t]]; })
+      .sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0], 'ko'); });
+  }
+
+  function renderChips() {
+    var tags = tagCounts();
+    if (!tags.length) { $('#chips').innerHTML = ''; $('#chips').style.display = 'none'; return; }
+    $('#chips').style.display = 'flex';
+    var show = ui.chipsOpen ? tags : tags.slice(0, 14);
+    var html = '<button type="button" class="chip' + (ui.tag ? '' : ' on') + '" data-tag="">전체</button>';
+    show.forEach(function (t) {
+      html += '<button type="button" class="chip' + (ui.tag === t[0] ? ' on' : '') + '" data-tag="' + esc(t[0]) + '">' +
+        esc(t[0]) + '<span class="n">' + t[1] + '</span></button>';
+    });
+    if (tags.length > 14) {
+      html += '<button type="button" class="chip" data-chipmore="1">' + (ui.chipsOpen ? '접기' : '＋' + (tags.length - 14)) + '</button>';
+    }
+    $('#chips').innerHTML = html;
+  }
+
+  function renderStatus() {
+    var filtered = visibleEvents();
+    var el = $('#statusText');
+    var monthEvents = state.events.filter(function (ev) { return match(ev, ui.q, ui.tag, ui.hideDone) && ymOf(ev.date) === ui.ym; });
+    var done = monthEvents.filter(function (ev) { return ev.done; }).length;
+    if (ui.q || ui.tag) {
+      el.innerHTML = '조건에 맞는 기록 <b>' + filtered.length + '</b>개 · 이 달 <b>' + monthEvents.length + '</b>개';
+    } else if (ui.view === 'list') {
+      el.innerHTML = '이 달 <b>' + monthEvents.length + '</b>개 · 전체 <b>' + filtered.length + '</b>개';
+    } else {
+      el.innerHTML = '이 달 기록 <b>' + monthEvents.length + '</b>개 · 완료 <b>' + done + '</b>개';
+    }
+  }
+
+  /* ---------------- month grid ---------------- */
+  function pillLimit() {
+    var w = window.innerWidth;
+    if (w < 520) return 2;
+    if (w < 900) return 2;
+    return 3;
+  }
+
+  function pillHtml(ev) {
+    var out = '<button type="button" class="pill' + (ev.done ? ' done' : '') + '" draggable="true" data-ev="' + esc(ev.id) + '" title="' + esc(ev.title) + '">';
+    if (ev.star && String(ev.title || '').indexOf('★') < 0) out += '<span class="st">★</span>';
+    out += '<span class="tt">' + esc(ev.title || '(제목 없음)') + '</span>';
+    if (ev.tags && ev.tags[0]) out += '<span class="tag">' + esc(ev.tags[0]) + '</span>';
+    var files = (ev.links || []).filter(function (l) { return l.kind; });
+    if (files.length) out += '<span class="fxb">' + esc(fxLabel(files[0].ext)) + '</span>';
+    out += '<span class="pchk" data-pchk="' + esc(ev.id) + '" role="button" aria-label="완료 표시">' + (ev.done ? '✓' : '') + '</span>';
+    out += '</button>';
+    return out;
+  }
+
+  function renderMonth() {
+    var y = +ui.ym.slice(0, 4), m = +ui.ym.slice(5, 7);
+    var first = new Date(y, m - 1, 1, 12);
+    var offset = first.getDay();
+    var dim = daysInMonth(y, m);
+    var rows = Math.ceil((offset + dim) / 7);
+    var tstr = todayYmd();
+    var limit = pillLimit();
+    var html = '';
+    for (var i = 0; i < rows * 7; i++) {
+      var d = new Date(y, m - 1, 1 - offset + i, 12);
+      var ds = ymd(d);
+      var inMonth = d.getMonth() === m - 1;
+      var list = eventsOn(ds).filter(function (ev) { return match(ev, ui.q, ui.tag, ui.hideDone); });
+      var cls = 'cell';
+      if (!inMonth) cls += ' pad';
+      if (ds === tstr) cls += ' today';
+      if (d.getDay() === 0) cls += ' sun';
+      if (d.getDay() === 6) cls += ' sat';
+      html += '<div class="' + cls + '" data-day="' + ds + '">';
+      html += '<span class="dnum">' + d.getDate() + '</span>';
+      html += '<div class="pills">';
+      for (var k = 0; k < Math.min(list.length, limit); k++) html += pillHtml(list[k]);
+      html += '</div>';
+      if (list.length > limit) {
+        html += '<button type="button" class="more" data-more="' + ds + '">+' + (list.length - limit) + '개</button>';
+      }
+      html += '</div>';
+    }
+    $('#grid').innerHTML = html;
+    var empty = $('#monthEmpty');
+    var monthTotal = state.events.filter(function (ev) { return match(ev, ui.q, ui.tag, ui.hideDone) && ymOf(ev.date) === ui.ym; }).length;
+    if (!monthTotal && (ui.q || ui.tag || ui.hideDone)) {
+      empty.hidden = false;
+      empty.className = 'empty';
+      empty.innerHTML = '<b>이 달에는 조건에 맞는 기록이 없어요</b>' +
+        (ui.hideDone ? '완료 숨기기를 끄면 완료한 기록도 보입니다.' : '검색어나 태그를 바꿔 보세요.');
+    } else {
+      empty.hidden = true;
+      empty.innerHTML = '';
+    }
+  }
+
+  /* ---------------- list ---------------- */
+  function rowHtml(ev) {
+    var d = parseYmd(ev.date);
+    var dow = d ? d.getDay() : 0;
+    var cls = 'row' + (ev.done ? ' done' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '');
+    var meta = '';
+    if (ev.star && String(ev.title || '').indexOf('★') < 0) meta += '<span class="m-star">★ 중요</span>';
+    if (ev.tags && ev.tags.length) {
+      meta += '<span class="m-tag">' + esc(ev.tags.slice(0, 2).join(' ')) + '</span>';
+    }
+    var files = (ev.links || []).filter(function (l) { return l.kind; });
+    if (files.length) meta += '<span class="m-fx">자료 ' + files.length + '</span>';
+    var web = (ev.links || []).filter(function (l) { return !l.kind; });
+    if (web.length) meta += '<span class="m-fx">링크 ' + web.length + '</span>';
+    if (ev.end) meta += '<span class="m-fx">' + fmtShort(ev.end) + '까지</span>';
+    var day = d ? d.getDate() : '';
+    var monthTxt = d ? (d.getMonth() + 1) + '월' : '';
+    return '<div class="' + cls + '" data-ev="' + esc(ev.id) + '">' +
+      '<div class="date"><b>' + day + '</b><span>' + esc(monthTxt) + (d ? '·' + DOW[dow] : '') + '</span></div>' +
+      '<div class="mid"><div class="title">' + esc(ev.title || '(제목 없음)') + '</div>' +
+      (meta ? '<div class="meta">' + meta + '</div>' : '') + '</div>' +
+      '<button type="button" class="chk' + (ev.done ? ' on' : '') + '" data-chk="' + esc(ev.id) + '" aria-label="완료 표시">✓</button>' +
+      '</div>';
+  }
+
+  function renderList() {
+    var list = visibleEvents().slice();
+    list.sort(function (a, b) {
+      if (a.date === b.date) return cmpEvent(a, b);
+      return ui.sortAsc ? (a.date < b.date ? -1 : 1) : (a.date < b.date ? 1 : -1);
+    });
+    $('#listCount').textContent = list.length + '개 기록';
+    if (!list.length) {
+      $('#list').innerHTML = '<div class="empty"><b>조건에 맞는 기록이 없어요</b>검색어나 태그를 바꿔 보세요.</div>';
+      return;
+    }
+    var html = '';
+    var lastYm = null;
+    list.forEach(function (ev) {
+      var k = ymOf(ev.date);
+      if (k !== lastYm) {
+        if (lastYm !== null) html += '</div>';
+        var y = k.slice(0, 4), m = +k.slice(5, 7);
+        var cnt = list.filter(function (e) { return ymOf(e.date) === k; }).length;
+        html += '<div class="month-group" data-ymk="' + k + '"><div class="month-head">' + y + '년 ' + m + '월 <span>' + cnt + '개</span></div>';
+        lastYm = k;
+      }
+      html += rowHtml(ev);
+    });
+    if (lastYm !== null) html += '</div>';
+    $('#list').innerHTML = html;
+    if (pendingListScroll) {
+      pendingListScroll = false;
+      var g = $('#list [data-ymk="' + ui.ym + '"]');
+      if (g) {
+        var top = g.getBoundingClientRect().top + (window.pageYOffset || 0) - 150;
+        try { window.scrollTo({ top: top < 0 ? 0 : top, behavior: 'auto' }); } catch (e) { window.scrollTo(0, top); }
+      }
+    }
+  }
+
+  function render() {
+    renderHead();
+    renderChips();
+    renderStatus();
+    if (ui.view === 'month') renderMonth(); else renderList();
+  }
+
+  /* ---------------- toast ---------------- */
+  function toast(msg, undoFn) {
+    var box = $('#toasts');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'toasts';
+      box.id = 'toasts';
+      document.body.appendChild(box);
+    }
+    box.classList.toggle('above', modals.length > 0);
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<span>' + esc(msg) + '</span>' + (undoFn ? '<button type="button" data-undo="1">실행 취소</button>' : '');
+    box.appendChild(el);
+    var timer = setTimeout(remove, undoFn ? 6000 : 3600);
+    function remove() {
+      clearTimeout(timer);
+      if (!el.parentNode) return;
+      el.classList.add('out');
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+    }
+    if (undoFn) {
+      el.querySelector('[data-undo]').addEventListener('click', function () { remove(); undoFn(); });
+    }
+  }
+
+  /* ---------------- sheets ---------------- */
+  var modals = [];
+  function openSheet(html, opts) {
+    opts = opts || {};
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="sheet">' + html + '</div>';
+    document.body.appendChild(ov);
+    document.body.classList.add('modal-open');
+    window.requestAnimationFrame(function () { ov.classList.add('in'); });
+    ov.addEventListener('click', function (e) { if (e.target === ov) closeSheet(ov); });
+    modals.push(ov);
+    var focusEl = ov.querySelector('[data-autofocus]');
+    if (focusEl) setTimeout(function () { try { focusEl.focus(); } catch (err) {} }, 140);
+    return ov;
+  }
+  function closeSheet(ov) {
+    var i = modals.indexOf(ov);
+    if (i >= 0) modals.splice(i, 1);
+    ov.classList.remove('in');
+    setTimeout(function () { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 180);
+    if (!modals.length) document.body.classList.remove('modal-open');
+  }
+  function closeTop() { if (modals.length) closeSheet(modals[modals.length - 1]); }
+
+  function askConfirm(title, msg, okLabel, onOk, danger) {
+    var ov = openSheet(
+      '<div class="sheet-top"><div class="grow"><h2 class="sheet-title">' + esc(title) + '</h2></div>' +
+      '<button type="button" class="xbtn" data-act="cancel">✕</button></div>' +
+      '<div class="sheet-body"><p class="desc">' + esc(msg) + '</p></div>' +
+      '<div class="sheet-foot"><button type="button" class="btn ghost" data-act="cancel">취소</button>' +
+      '<button type="button" class="btn ' + (danger ? 'danger' : 'primary') + '" data-act="ok">' + esc(okLabel) + '</button></div>'
+    );
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      if (b.getAttribute('data-act') === 'cancel') closeSheet(ov);
+      if (b.getAttribute('data-act') === 'ok') { closeSheet(ov); onOk(); }
+    });
+    return ov;
+  }
+
+  /* ---------------- detail ---------------- */
+  function linkify(text) {
+    var out = esc(text);
+    return out.replace(/((?:https?:\/\/|www\.)[^\s<>"']+)/g, function (u) {
+      var href = u.indexOf('http') === 0 ? u : 'https://' + u;
+      return '<a class="dl" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + u + '</a>';
+    });
+  }
+
+  function detailHtml(ev, showAllLinks) {
+    var dateLine = ev.end ? fmtFull(ev.date) + ' ~ ' + fmtFull(ev.end) : fmtFull(ev.date);
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">' + esc(dateLine) + '</p>' +
+      '<h2 class="sheet-title">' + (ev.star && String(ev.title || '').indexOf('★') < 0 ? '★ ' : '') + esc(ev.title || '(제목 없음)') + '</h2></div>' +
+      '<button type="button" class="xbtn" data-act="close" aria-label="닫기">✕</button></div><div class="sheet-body">';
+
+    if (ev.tags && ev.tags.length) {
+      html += '<div class="tagrow">' + ev.tags.map(function (t) { return '<span class="tagpill">' + esc(t) + '</span>'; }).join('') + '</div>';
+    }
+
+    html += '<button type="button" class="done-toggle' + (ev.done ? ' on' : '') + '" data-act="toggleDone">' +
+      '<span class="box">' + (ev.done ? '✓' : '') + '</span>' +
+      '<span class="lbl">' + (ev.done ? '완료됨 · 눌러서 되돌리기' : '완료로 표시') + '</span>' +
+      '<span class="hint2">' + (ev.done ? '' : '회색으로 바뀝니다') + '</span></button>';
+
+    html += '<div class="moverow" id="moveRow" hidden>' +
+      '<input type="date" class="input" id="moveDate" value="' + esc(ev.date) + '" aria-label="옮길 날짜">' +
+      '<button type="button" class="btn primary" data-act="moveApply">옮기기</button></div>';
+
+    if (ev.desc) {
+      html += '<div class="descbox" id="descBox"><p class="desc">' + linkify(ev.desc) + '</p></div>';
+      html += '<button type="button" class="moretxt" data-act="expand">전체 보기</button>';
+    } else {
+      html += '<div class="descbox"><p class="desc-empty">내용이 없습니다. 편집에서 멘트를 적어 두면 다음 해에 그대로 복사할 수 있어요.</p></div>';
+    }
+
+    var files = (ev.links || []).filter(function (l) { return l.kind; });
+    var web = (ev.links || []).filter(function (l) { return !l.kind; });
+
+    if (files.length) {
+      html += '<div class="seclabel">자료 <span class="cnt">' + files.length + '</span></div>';
+      files.forEach(function (f, i) {
+        var where = f.kind === 'local' ? '이 기기에 저장됨' : '구글 드라이브';
+        html += '<div class="filerow" data-file="' + i + '" role="button" tabindex="0">' +
+          '<span class="' + fxClass(f.ext) + '">' + esc(fxLabel(f.ext)) + '</span>' +
+          '<span style="flex:1;min-width:0"><span class="fname">' + esc(f.name || '파일') + '</span>' +
+          '<span class="fsub">' + where + (f.size ? ' · ' + fmtSize(f.size) : '') + '</span></span>' +
+          '<span class="go">열기 ›</span></div>';
+      });
+    }
+
+    if (web.length) {
+      html += '<div class="seclabel">링크 <span class="cnt">' + web.length + '</span></div>';
+      var shownLinks = showAllLinks ? web : web.slice(0, 6);
+      shownLinks.forEach(function (l, i) {
+        html += '<div class="linkrow" data-link="' + i + '" role="button" tabindex="0">' +
+          '<span class="fx" style="min-width:22px">🔗</span>' +
+          '<span style="flex:1;min-width:0"><span class="lname">' + esc(l.name || l.url) + '</span>' +
+          '<span class="lsub">' + esc(l.url) + '</span></span><span class="go">›</span></div>';
+      });
+      if (!showAllLinks && web.length > shownLinks.length) {
+        html += '<button type="button" class="moretxt" data-act="morelinks">링크 ' + (web.length - shownLinks.length) + '개 더 보기</button>';
+      }
+    }
+
+    html += '</div><div class="sheet-foot">' +
+      '<button type="button" class="btn primary" data-act="copy">멘트 복사</button>' +
+      '<button type="button" class="btn ghost" data-act="move">날짜 옮기기</button>' +
+      '<button type="button" class="btn ghost" data-act="edit">편집</button>' +
+      '<button type="button" class="btn danger grow0" data-act="del" style="flex:0 0 auto">삭제</button>' +
+      '</div>';
+    return html;
+  }
+
+  function fmtSize(n) {
+    if (!n) return '';
+    if (n < 1024) return n + 'B';
+    if (n < 1024 * 1024) return Math.round(n / 1024) + 'KB';
+    return (n / 1024 / 1024).toFixed(1) + 'MB';
+  }
+
+  function openDetail(id) {
+    var ev = findEv(id);
+    if (!ev) return;
+    var ov = openSheet(detailHtml(ev));
+    ov.setAttribute('data-evid', id);
+    tagDescOverflow(ov);
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act], [data-file], [data-link]');
+      if (!b) return;
+      var cur = findEv(id);
+      if (!cur) return;
+      if (b.hasAttribute('data-file')) {
+        var files = (cur.links || []).filter(function (l) { return l.kind; });
+        openAttachment(files[+b.getAttribute('data-file')]);
+        return;
+      }
+      if (b.hasAttribute('data-link')) {
+        var web = (cur.links || []).filter(function (l) { return !l.kind; });
+        var l = web[+b.getAttribute('data-link')];
+        if (l && l.url) window.open(l.url, '_blank', 'noopener');
+        return;
+      }
+      var act = b.getAttribute('data-act');
+      if (act === 'close') closeSheet(ov);
+      else if (act === 'toggleDone') { toggleDone(id); syncDone(ov, cur); }
+      else if (act === 'copy') copyMent(cur);
+      else if (act === 'move') {
+        var row = $('#moveRow', ov);
+        row.hidden = !row.hidden;
+        if (!row.hidden) { try { $('#moveDate', ov).focus(); } catch (err) {} }
+      } else if (act === 'moveApply') {
+        var val = $('#moveDate', ov).value;
+        if (!validYmd(val)) { toast('날짜를 선택해 주세요.'); return; }
+        if (val === cur.date) { toast('같은 날짜입니다.'); return; }
+        moveEvent(id, val);
+        closeSheet(ov);
+      } else if (act === 'edit') { openEdit(id, ov); }
+      else if (act === 'del') {
+        askConfirm('기록 삭제', '“' + (cur.title || '제목 없음') + '” 기록을 삭제할까요?\n삭제 후에도 바로 되돌릴 수 있습니다.', '삭제', function () {
+          closeSheet(ov);
+          deleteEvent(id);
+        }, true);
+      } else if (act === 'morelinks') {
+        var sheet = ov.querySelector('.sheet');
+        if (sheet) { sheet.innerHTML = detailHtml(cur, true); tagDescOverflow(ov); }
+      } else if (act === 'expand') {
+        var box = $('#descBox', ov);
+        box.classList.toggle('open');
+        b.textContent = box.classList.contains('open') ? '접기' : '전체 보기';
+      }
+    });
+  }
+
+  function tagDescOverflow(ov) {
+    var box = $('#descBox', ov);
+    var more = ov.querySelector('[data-act="expand"]');
+    if (!box) { if (more) more.style.display = 'none'; return; }
+    var over = box.scrollHeight > box.clientHeight + 6;
+    box.classList.toggle('clipped', over);
+    if (more) more.style.display = over ? '' : 'none';
+  }
+
+  function syncDone(ov, ev) {
+    var t = ov.querySelector('.done-toggle');
+    if (!t) return;
+    t.classList.toggle('on', ev.done);
+    var box = t.querySelector('.box');
+    if (box) box.textContent = ev.done ? '✓' : '';
+    var lbl = t.querySelector('.lbl');
+    if (lbl) lbl.textContent = ev.done ? '완료됨 · 눌러서 되돌리기' : '완료로 표시';
+    var hint = t.querySelector('.hint2');
+    if (hint) hint.textContent = ev.done ? '' : '회색으로 바뀝니다';
+  }
+
+  function refreshDetailSheets(id) {
+    modals.forEach(function (ov) {
+      if (ov.getAttribute('data-evid') === id && ov.classList.contains('overlay')) {
+        var sheet = ov.querySelector('.sheet');
+        var ev = findEv(id);
+        if (sheet && ev) { sheet.innerHTML = detailHtml(ev, ov.getAttribute('data-links') === 'all'); tagDescOverflow(ov); }
+      }
+    });
+  }
+
+  function copyMent(ev) {
+    var text = ev.desc || ev.title || '';
+    if (!text) { toast('복사할 내용이 없습니다.'); return; }
+    copyText(text, '멘트 ' + text.length + '자를 복사했습니다');
+  }
+
+  function copyText(text, okMsg) {
+    function done() { toast(okMsg || '복사했습니다'); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) done(); else toast('복사가 막혔어요. 내용을 길게 눌러 직접 복사해 주세요.');
+      } catch (e) {
+        if (ta.parentNode) document.body.removeChild(ta);
+        toast('복사하지 못했습니다.');
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+  }
+
+  /* ---------------- mutations ---------------- */
+  function toggleDone(id) {
+    var ev = findEv(id);
+    if (!ev) return;
+    ev.done = !ev.done;
+    commit();
+  }
+
+  function moveEvent(id, date) {
+    var ev = findEv(id);
+    if (!ev) return;
+    var oldDate = ev.date, oldEnd = ev.end;
+    var delta = 0;
+    if (oldDate && date) {
+      delta = Math.round((parseYmd(date) - parseYmd(oldDate)) / 86400000);
+    }
+    ev.date = date;
+    if (ev.end && delta) ev.end = ymd(addDays(parseYmd(ev.end), delta));
+    commit();
+    refreshDetailSheets(id);
+    toast('날짜를 ' + fmtShort(date) + '로 옮겼습니다', function () {
+      var back = findEv(id);
+      if (!back) return;
+      back.date = oldDate;
+      if (oldEnd) back.end = oldEnd; else delete back.end;
+      commit();
+      refreshDetailSheets(id);
+    });
+  }
+
+  function deleteEvent(id) {
+    var i = findIdx(id);
+    if (i < 0) return;
+    var removed = state.events.splice(i, 1)[0];
+    commit();
+    toast('기록을 삭제했습니다', function () {
+      state.events.splice(i, 0, removed);
+      commit();
+    });
+  }
+
+  /* ---------------- files (IndexedDB) ---------------- */
+  var dbPromise = null;
+  function idb() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('no indexedDB')); return; }
+      var req;
+      try { req = indexedDB.open(DB_NAME, 1); } catch (e) { reject(e); return; }
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error('idb error')); };
+      req.onblocked = function () { reject(new Error('idb blocked')); };
+    });
+    return dbPromise;
+  }
+
+  function idbPut(rec) {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').put(rec);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function idbGet(id) {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('files', 'readonly');
+        var req = tx.objectStore('files').get(id);
+        req.onsuccess = function () { resolve(req.result || null); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function idbDel(id) {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').delete(id);
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function idbAll() {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('files', 'readonly');
+        var req = tx.objectStore('files').getAll();
+        req.onsuccess = function () { resolve(req.result || []); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function openAttachment(f) {
+    if (!f) return;
+    if (f.kind === 'drive' && f.url) { window.open(f.url, '_blank', 'noopener'); return; }
+    if (f.kind !== 'local') {
+      if (f.url) window.open(f.url, '_blank', 'noopener');
+      return;
+    }
+    idbGet(f.id).then(function (rec) {
+      if (!rec || !rec.blob) { toast('이 기기에 파일이 없습니다. 다시 첨부해 주세요.'); return; }
+      var url = URL.createObjectURL(rec.blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = rec.name || f.name || 'file';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
+    }).catch(function () { toast('파일을 열지 못했습니다.'); });
+  }
+
+  /* ---------------- day sheet ---------------- */
+  function openDay(ds) {
+    var list = eventsOn(ds).filter(function (ev) { return match(ev, ui.q, ui.tag, ui.hideDone); });
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">' + esc(fmtFull(ds)) + '</p>' +
+      '<h2 class="sheet-title">' + list.length + '개 기록</h2></div>' +
+      '<button type="button" class="xbtn" data-act="close">✕</button></div><div class="sheet-body">';
+    if (!list.length) {
+      html += '<div class="empty"><b>이 날은 기록이 없어요</b>필요하면 기록을 추가해 두세요.</div>';
+    } else {
+      html += '<div class="daylist">' + list.map(rowHtml).join('') + '</div>';
+    }
+    html += '</div><div class="sheet-foot"><button type="button" class="btn ghost" data-act="close">닫기</button>' +
+      '<button type="button" class="btn primary" data-act="add">＋ 이 날짜에 기록 추가</button></div>';
+    var ov = openSheet(html);
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act], [data-ev], [data-chk]');
+      if (!b) return;
+      if (b.hasAttribute('data-chk')) {
+        toggleDone(b.getAttribute('data-chk'));
+        closeSheet(ov);
+        openDay(ds);
+        return;
+      }
+      if (b.hasAttribute('data-ev') && !b.hasAttribute('data-act')) {
+        openDetail(b.getAttribute('data-ev'));
+        return;
+      }
+      var act = b.getAttribute('data-act');
+      if (act === 'close') closeSheet(ov);
+      if (act === 'add') { closeSheet(ov); openEdit(null, null, ds); }
+    });
+  }
+
+  /* ---------------- edit ---------------- */
+  function openEdit(id, backOv, presetDate) {
+    var ev = id ? findEv(id) : null;
+    var draft = {
+      id: id,
+      links: ev ? clone(ev.links || []) : [],
+      addedFiles: [],
+      removedFiles: []
+    };
+    var d0 = ev ? ev.date : (presetDate || todayYmd());
+    var tagsVal = ev && ev.tags ? ev.tags.join(' ') : (ui.tag || '');
+
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">' + (id ? '기록 편집' : '새 기록') + '</p>' +
+      '<h2 class="sheet-title">' + (id ? '내용 고치기' : '무엇을 기록할까요') + '</h2></div>' +
+      '<button type="button" class="xbtn" data-act="cancel">✕</button></div><div class="sheet-body">' +
+      '<div class="field"><label class="flabel" for="eTitle">제목</label>' +
+      '<input class="input" id="eTitle" value="' + esc(ev ? ev.title : '') + '" placeholder="예: 3교시 수업 준비" data-autofocus></div>' +
+      '<div class="row2"><div class="field"><label class="flabel" for="eDate">날짜</label>' +
+      '<input class="input" type="date" id="eDate" value="' + esc(d0) + '"></div>' +
+      '<div class="field"><label class="flabel" for="eEnd">끝나는 날 (여러 날)</label>' +
+      '<input class="input" type="date" id="eEnd" value="' + esc(ev && ev.end ? ev.end : '') + '"></div></div>' +
+      '<label class="checkline"><input type="checkbox" id="eStar"' + (ev && ev.star ? ' checked' : '') + '> ★ 중요 표시</label>' +
+      '<label class="checkline"><input type="checkbox" id="eDone"' + (ev && ev.done ? ' checked' : '') + '> 완료로 표시 (회색)</label>' +
+      '<div class="field"><label class="flabel" for="eTags">태그 (#으로 시작)</label>' +
+      '<input class="input" id="eTags" value="' + esc(tagsVal) + '" placeholder="#수업 #기록">' +
+      '<div class="suggest" id="tagSuggest"></div></div>' +
+      '<div class="field"><label class="flabel" for="eDesc">멘트 · 내용</label>' +
+      '<textarea class="textarea" id="eDesc" placeholder="학생들에게 그대로 읽을 멘트나 수업 메모를 적어 두세요.">' + esc(ev && ev.desc ? ev.desc : '') + '</textarea></div>' +
+      '<div class="field"><span class="flabel">첨부 파일</span><div id="fileList"></div>' +
+      '<button type="button" class="btn ghost sm" data-act="pick">＋ 파일 첨부</button>' +
+      '<input type="file" id="eFile" multiple hidden>' +
+      '<p class="hint">PPT·HWP·PDF 등을 이 기기 브라우저에 저장해 두고 나중에 바로 열 수 있어요. JSON 백업에는 파일 본문이 포함되지 않습니다.</p></div>' +
+      '<div class="field"><span class="flabel">링크</span><div id="linkList"></div>' +
+      '<button type="button" class="btn ghost sm" data-act="addlink">＋ 링크 추가</button>' +
+      '<p class="hint">구글 드라이브·유튜브 등 웹 주소를 붙여 두세요.</p></div>' +
+      '</div><div class="sheet-foot">' +
+      '<button type="button" class="btn ghost" data-act="cancel">취소</button>' +
+      '<button type="button" class="btn primary" data-act="save">저장</button></div>';
+
+    var ov = openSheet(html);
+
+    function renderFiles() {
+      var files = draft.links.filter(function (l) { return l.kind; });
+      var box = $('#fileList', ov);
+      if (!files.length) { box.innerHTML = '<p class="hint" style="margin:0 0 6px">첨부한 파일이 없습니다.</p>'; return; }
+      box.innerHTML = files.map(function (f, i) {
+        return '<div class="filerow" style="cursor:default">' +
+          '<span class="' + fxClass(f.ext) + '">' + esc(fxLabel(f.ext)) + '</span>' +
+          '<span style="flex:1;min-width:0"><span class="fname">' + esc(f.name) + '</span>' +
+          '<span class="fsub">' + (f.kind === 'local' ? '기기 저장' : '드라이브') + (f.size ? ' · ' + fmtSize(f.size) : '') + '</span></span>' +
+          '<button type="button" class="icon-mini" data-rmfile="' + i + '" aria-label="파일 빼기">✕</button></div>';
+      }).join('');
+    }
+
+    function renderLinks() {
+      var web = draft.links.filter(function (l) { return !l.kind; });
+      var box = $('#linkList', ov);
+      if (!web.length) { box.innerHTML = '<p class="hint" style="margin:0 0 6px">추가한 링크가 없습니다.</p>'; return; }
+      box.innerHTML = web.map(function (l, i) {
+        return '<div class="linkedit"><input class="input nm" data-lname="' + i + '" value="' + esc(l.name || '') + '" placeholder="이름 (선택)">' +
+          '<input class="input ur" data-lurl="' + i + '" value="' + esc(l.url || '') + '" placeholder="https://">' +
+          '<button type="button" class="icon-mini" data-rmlink="' + i + '" aria-label="링크 빼기">✕</button></div>';
+      }).join('');
+    }
+
+    function syncLinksFromDom() {
+      var web = draft.links.filter(function (l) { return !l.kind; });
+      $$('[data-lname]', ov).forEach(function (inp) {
+        var i = +inp.getAttribute('data-lname');
+        if (web[i]) web[i].name = inp.value.trim();
+      });
+      $$('[data-lurl]', ov).forEach(function (inp) {
+        var i = +inp.getAttribute('data-lurl');
+        if (web[i]) web[i].url = inp.value.trim();
+      });
+    }
+
+    renderFiles();
+    renderLinks();
+
+    var suggestions = tagCounts().slice(0, 10);
+    $('#tagSuggest', ov).innerHTML = suggestions.map(function (t) {
+      return '<button type="button" data-tag="' + esc(t[0]) + '">' + esc(t[0]) + '</button>';
+    }).join('');
+
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act], [data-rmfile], [data-rmlink], [data-tag]');
+      if (!b) return;
+      if (b.hasAttribute('data-tag')) {
+        var inp = $('#eTags', ov);
+        var t = b.getAttribute('data-tag');
+        var cur = inp.value.split(/[\s,]+/).filter(Boolean);
+        if (cur.indexOf(t) < 0) cur.push(t);
+        inp.value = cur.join(' ');
+        return;
+      }
+      if (b.hasAttribute('data-rmfile')) {
+        var files = draft.links.filter(function (l) { return l.kind; });
+        var f = files[+b.getAttribute('data-rmfile')];
+        if (!f) return;
+        var pos = draft.links.indexOf(f);
+        if (pos >= 0) draft.links.splice(pos, 1);
+        if (f.kind === 'local' && f.id) {
+          var ai = draft.addedFiles.indexOf(f.id);
+          if (ai >= 0) { draft.addedFiles.splice(ai, 1); idbDel(f.id).catch(function () {}); }
+          else draft.removedFiles.push(f.id);
+        }
+        renderFiles();
+        return;
+      }
+      if (b.hasAttribute('data-rmlink')) {
+        var web = draft.links.filter(function (l) { return !l.kind; });
+        var l = web[+b.getAttribute('data-rmlink')];
+        var p2 = draft.links.indexOf(l);
+        if (p2 >= 0) draft.links.splice(p2, 1);
+        renderLinks();
+        return;
+      }
+      var act = b.getAttribute('data-act');
+      if (act === 'cancel') { cancel(); }
+      else if (act === 'pick') { $('#eFile', ov).click(); }
+      else if (act === 'addlink') {
+        draft.links.push({ name: '', url: '' });
+        renderLinks();
+        var inputs = $$('[data-lurl]', ov);
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      } else if (act === 'save') { save(); }
+    });
+
+    function cancel() {
+      draft.addedFiles.forEach(function (fid) { idbDel(fid).catch(function () {}); });
+      closeSheet(ov);
+      if (backOv) closeSheet(backOv);
+    }
+
+    $('#eFile', ov).addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      if (!files.length) return;
+      var chain = Promise.resolve();
+      files.forEach(function (f) {
+        chain = chain.then(function () {
+          var fid = uid('f');
+          var rec = { id: fid, name: f.name, type: f.type || '', size: f.size, blob: f, addedAt: Date.now() };
+          return idbPut(rec).then(function () {
+            draft.links.push({ kind: 'local', id: fid, name: f.name, ext: extOf(f.name, f.type), size: f.size });
+            draft.addedFiles.push(fid);
+            renderFiles();
+          }).catch(function () {
+            toast('파일을 저장하지 못했습니다: ' + f.name);
+          });
+        });
+      });
+      chain.then(function () { e.target.value = ''; });
+    });
+
+    function save() {
+      syncLinksFromDom();
+      var title = $('#eTitle', ov).value.trim();
+      var date = $('#eDate', ov).value;
+      var end = $('#eEnd', ov).value;
+      var desc = $('#eDesc', ov).value;
+      var tagRaw = $('#eTags', ov).value;
+      if (!validYmd(date)) { toast('날짜를 선택해 주세요.'); return; }
+      if (end && !validYmd(end)) { toast('끝나는 날짜를 확인해 주세요.'); return; }
+      if (end && end < date) { toast('끝나는 날이 시작일보다 빠릅니다.'); return; }
+      if (!title && !desc.trim()) { toast('제목이나 내용을 적어 주세요.'); $('#eTitle', ov).focus(); return; }
+      var tags = tagRaw.split(/[\s,]+/).filter(Boolean).map(function (t) {
+        return t.charAt(0) === '#' ? t : '#' + t;
+      }).slice(0, 8);
+      var links = draft.links.filter(function (l) {
+        return l.kind || (l.url && l.url.trim());
+      }).map(function (l) {
+        var x = { name: l.name || '', url: l.url || '' };
+        if (l.kind) x.kind = l.kind;
+        if (l.ext) x.ext = l.ext;
+        if (l.mime) x.mime = l.mime;
+        if (l.size) x.size = l.size;
+        if (l.id) x.id = l.id;
+        return x;
+      });
+      var patch = {
+        title: title,
+        date: date,
+        desc: desc,
+        done: $('#eDone', ov).checked,
+        star: $('#eStar', ov).checked
+      };
+      if (end) patch.end = end;
+      if (tags.length) patch.tags = tags; else patch.tags = [];
+      if (links.length) patch.links = links; else patch.links = [];
+
+      if (id) {
+        var target = findEv(id);
+        if (target) {
+          ['end', 'desc', 'tags', 'links'].forEach(function (k) { delete target[k]; });
+          Object.keys(patch).forEach(function (k) { target[k] = patch[k]; });
+          if (!patch.tags.length) delete target.tags;
+          if (!patch.links.length) delete target.links;
+          if (!patch.end) delete target.end;
+        }
+        draft.removedFiles.forEach(function (fid) { idbDel(fid).catch(function () {}); });
+        commit();
+        refreshDetailSheets(id);
+        closeSheet(ov);
+        toast('수정했습니다');
+      } else {
+        var ev2 = normalize(patch);
+        ev2.id = uid('e');
+        state.events.push(ev2);
+        commit();
+        closeSheet(ov);
+        if (backOv) closeSheet(backOv);
+        toast('기록을 추가했습니다');
+      }
+      if (!storageOk) toast('저장 공간이 부족해 이번 변경은 화면에만 남습니다.');
+    }
+  }
+
+  /* ---------------- settings ---------------- */
+  function openSettings() {
+    var filtered = visibleEvents();
+    var files = 0, links = 0;
+    state.events.forEach(function (ev) {
+      (ev.links || []).forEach(function (l) { if (l.kind) files++; else links++; });
+    });
+    var done = state.events.filter(function (e) { return e.done; }).length;
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">설정</p>' +
+      '<h2 class="sheet-title">데이터와 백업</h2></div>' +
+      '<button type="button" class="xbtn" data-act="close">✕</button></div><div class="sheet-body">' +
+      '<div class="statgrid">' +
+      '<div class="stat"><b>' + state.events.length + '</b><span>기록</span></div>' +
+      '<div class="stat"><b>' + done + '</b><span>완료</span></div>' +
+      '<div class="stat"><b>' + files + '</b><span>자료</span></div>' +
+      '<div class="stat"><b id="stLocal">–</b><span>기기 첨부</span></div>' +
+      '</div>' +
+      '<div class="seclabel">다음 학년도 준비</div>' +
+      '<button type="button" class="setrow" data-act="shift"><span class="si">📅</span>' +
+      '<span class="st2"><b>연도 배치 도우미</b><i>2027년으로 날짜를 미리 옮겨 배치합니다</i></span><span class="chev">›</span></button>' +
+      '<div class="seclabel">백업 · 복원</div>' +
+      '<button type="button" class="setrow" data-act="export"><span class="si">⬇️</span>' +
+      '<span class="st2"><b>JSON 내보내기</b><i>편집·완료 표시까지 파일로 저장</i></span><span class="chev">›</span></button>' +
+      '<button type="button" class="setrow" data-act="import"><span class="si">⬆️</span>' +
+      '<span class="st2"><b>JSON 불러오기</b><i>백업 파일을 합치거나 통째로 바꿉니다</i></span><span class="chev">›</span></button>' +
+      '<button type="button" class="setrow" data-act="restore"><span class="si">↺</span>' +
+      '<span class="st2"><b>초기 캘린더 데이터로 복원</b><i>구글에서 가져온 ' + INITIAL.events.length + '개 원본으로 되돌립니다</i></span><span class="chev">›</span></button>' +
+      '<p class="hint" style="margin-top:10px">모든 변경은 이 기기의 브라우저 저장소(localStorage·IndexedDB)에 저장됩니다. 내보낸 JSON 파일은 백업용으로 보관하거나, 다른 기기·브라우저에서 ‘JSON 불러오기’로 되살릴 수 있어요.</p>' +
+      '</div>';
+    var ov = openSheet(html);
+    idbAll().then(function (all) {
+      var el = $('#stLocal', ov);
+      if (el) el.textContent = all.length;
+    }).catch(function () {
+      var el = $('#stLocal', ov);
+      if (el) el.textContent = '0';
+    });
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      if (act === 'close') closeSheet(ov);
+      else if (act === 'shift') openShift();
+      else if (act === 'export') exportJson();
+      else if (act === 'import') importJson();
+      else if (act === 'restore') {
+        askConfirm('초기 데이터로 복원', '편집한 내용, 완료 표시, 추가한 기록이 모두 사라지고 구글에서 가져온 ' + INITIAL.events.length + '개 원본으로 돌아갑니다. 첨부 파일은 기기에 그대로 남습니다.\n\n계속할까요?', '복원', function () {
+          state.events = INITIAL.events.map(normalize);
+          commit();
+          toast('초기 캘린더 데이터로 되돌렸습니다');
+        }, true);
+      }
+    });
+  }
+
+  /* ---------------- export / import ---------------- */
+  function download(name, text, type) {
+    var blob = new Blob([text], { type: type || 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1200);
+  }
+
+  function exportJson() {
+    var payload = {
+      app: '이종대왕 달력',
+      version: 1,
+      calendar: '이종대왕 달력',
+      exportedAt: new Date().toISOString(),
+      count: state.events.length,
+      events: state.events
+    };
+    download('이종대왕달력_' + todayYmd() + '.json', JSON.stringify(payload, null, 1));
+    toast('JSON으로 내보냈습니다 (' + state.events.length + '개)');
+  }
+
+  function importJson() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.addEventListener('change', function () {
+      var f = input.files && input.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var data;
+        try { data = JSON.parse(String(reader.result)); } catch (e) { toast('JSON을 읽지 못했습니다.'); return; }
+        var arr = data instanceof Array ? data : (data && data.events instanceof Array ? data.events : null);
+        if (!arr) { toast('이 앱의 백업 파일이 아닙니다.'); return; }
+        var clean = arr.filter(function (e) { return e && validYmd(e.date); });
+        if (!clean.length) { toast('가져올 기록이 없습니다.'); return; }
+        chooseImport(clean);
+      };
+      reader.readAsText(f);
+    });
+    input.click();
+  }
+
+  function chooseImport(list) {
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">JSON 불러오기</p>' +
+      '<h2 class="sheet-title">' + list.length + '개 기록을 찾았습니다</h2></div>' +
+      '<button type="button" class="xbtn" data-act="close">✕</button></div><div class="sheet-body">' +
+      '<p class="hint" style="margin-top:0">합치기는 같은 기록(id)은 업데이트하고 새 기록은 추가합니다. 교체는 지금 데이터를 모두 지우고 이 파일로 바꿉니다.</p>' +
+      '<div class="seclabel">현재 ' + state.events.length + '개</div></div>' +
+      '<div class="sheet-foot"><button type="button" class="btn ghost" data-act="close">취소</button>' +
+      '<button type="button" class="btn ghost" data-act="merge">합치기</button>' +
+      '<button type="button" class="btn primary" data-act="replace">교체</button></div>';
+    var ov = openSheet(html);
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      if (act === 'close') { closeSheet(ov); return; }
+      var before = state.events.slice();
+      if (act === 'merge') {
+        var map = {};
+        state.events.forEach(function (ev, i) { map[ev.id] = i; });
+        list.forEach(function (raw) {
+          var ev = normalize(raw);
+          if (map[ev.id] !== undefined) state.events[map[ev.id]] = ev;
+          else state.events.push(ev);
+        });
+        commit();
+        toast(list.length + '개를 합쳤습니다', function () { state.events = before; commit(); });
+      } else if (act === 'replace') {
+        state.events = list.map(normalize);
+        commit();
+        toast(list.length + '개로 교체했습니다', function () { state.events = before; commit(); });
+      }
+      closeSheet(ov);
+    });
+  }
+
+  /* ---------------- year shift ---------------- */
+  function ymLabel(k) { return (+k.slice(0, 4)) + '년 ' + (+k.slice(5, 7)) + '월'; }
+
+  function shiftDate(from, targetYear, mode) {
+    var d = parseYmd(from);
+    if (!d) return null;
+    var m = d.getMonth() + 1, day = d.getDate(), dow = d.getDay();
+    if (mode === 'exact') {
+      var dim = daysInMonth(targetYear, m);
+      var dd = Math.min(day, dim);
+      var res = { date: ymd(new Date(targetYear, m - 1, dd, 12)), note: '' };
+      if (dd !== day) res.note = m + '월은 ' + dim + '일까지라 ' + dd + '일로 조정';
+      return res;
+    }
+    var nth = Math.ceil(day / 7);
+    var firstDow = new Date(targetYear, m - 1, 1, 12).getDay();
+    var target = 1 + ((dow - firstDow + 7) % 7) + (nth - 1) * 7;
+    var dim2 = daysInMonth(targetYear, m);
+    if (target > dim2) {
+      var last = dim2;
+      while (last > 1 && new Date(targetYear, m - 1, last, 12).getDay() !== dow) last--;
+      return { date: ymd(new Date(targetYear, m - 1, last, 12)), note: '그 달에 ' + nth + '번째 ' + DOW[dow] + '요일이 없어 마지막 주로' };
+    }
+    return { date: ymd(new Date(targetYear, m - 1, target, 12)), note: '' };
+  }
+
+  function openShift() {
+    var years = {};
+    state.events.forEach(function (e) { years[String(e.date).slice(0, 4)] = 1; });
+    var ys = Object.keys(years).sort();
+    var srcYear = ys[ys.length - 1] || todayYmd().slice(0, 4);
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">다음 학년도 준비</p>' +
+      '<h2 class="sheet-title">연도 배치 도우미</h2></div>' +
+      '<button type="button" class="xbtn" data-act="close">✕</button></div><div class="sheet-body">' +
+      '<div class="row2"><div class="field"><label class="flabel" for="sYear">원본 연도</label>' +
+      '<select class="input" id="sYear">' + ys.map(function (y) {
+        return '<option value="' + y + '"' + (y === srcYear ? ' selected' : '') + '>' + y + '년</option>';
+      }).join('') + '</select></div>' +
+      '<div class="field"><label class="flabel" for="tYear">옮길 연도</label>' +
+      '<input class="input" type="number" id="tYear" value="' + (+srcYear + 1) + '" min="2000" max="2100" inputmode="numeric"></div></div>' +
+      '<div class="field"><span class="flabel">배치 방식</span>' +
+      '<label class="radio on"><input type="radio" name="smode" value="weekday" checked>' +
+      '<span><b>같은 요일 · 몇째 주</b><i>3월 둘째 금요일 → 내년 3월 둘째 금요일 (요일 리듬 유지)</i></span></label>' +
+      '<label class="radio"><input type="radio" name="smode" value="exact">' +
+      '<span><b>같은 날짜</b><i>3월 6일 → 내년 3월 6일 (날짜 그대로)</i></span></label></div>' +
+      '<label class="checkline"><input type="checkbox" id="sDone" checked> 완료한 기록도 포함</label>' +
+      '<label class="checkline"><input type="checkbox" id="sKeep" checked> 원본 기록 유지 (복사해서 배치)</label>' +
+      '<button type="button" class="btn primary block" data-act="preview" style="margin-top:8px">미리보기</button>' +
+      '<div id="shiftPreview"></div></div>' +
+      '<div class="sheet-foot"><button type="button" class="btn ghost" data-act="close">닫기</button>' +
+      '<button type="button" class="btn primary" data-act="apply" disabled>배치 적용</button></div>';
+    var ov = openSheet(html);
+    var rows = [];
+
+    function modeNow() {
+      var r = ov.querySelector('input[name="smode"]:checked');
+      return r ? r.value : 'weekday';
+    }
+
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      var applyBtn = ov.querySelector('[data-act="apply"]');
+      if (act === 'close') closeSheet(ov);
+      else if (act === 'preview') {
+        var target = parseInt($('#tYear', ov).value, 10);
+        var src = $('#sYear', ov).value;
+        if (!target || target < 2000 || target > 2100) { toast('옮길 연도를 확인해 주세요.'); return; }
+        if (String(target) === src) { toast('같은 연도입니다. 다른 연도를 골라 주세요.'); return; }
+        var includeDone = $('#sDone', ov).checked;
+        var mode = modeNow();
+        rows = state.events.filter(function (ev) {
+          return String(ev.date).slice(0, 4) === src && (includeDone || !ev.done);
+        }).sort(function (a, b2) { return a.date < b2.date ? -1 : a.date > b2.date ? 1 : 0; }).map(function (ev) {
+          var r = shiftDate(ev.date, target, mode);
+          var rEnd = ev.end ? shiftDate(ev.end, target, mode) : null;
+          return {
+            id: ev.id,
+            title: ev.title,
+            from: ev.date,
+            to: r ? r.date : null,
+            toEnd: rEnd ? rEnd.date : null,
+            note: r ? r.note : '날짜를 계산할 수 없음',
+            ok: !!r,
+            checked: !!r
+          };
+        });
+        var okCount = rows.filter(function (x) { return x.ok; }).length;
+        var box = $('#shiftPreview', ov);
+        if (!rows.length) {
+          box.innerHTML = '<p class="hint">옮길 기록이 없습니다.</p>';
+          applyBtn.disabled = true;
+          return;
+        }
+        box.innerHTML = '<div class="shift-summary">대상 <b>' + rows.length + '</b>개 · 배치 가능 <b>' + okCount + '</b>개 · 선택 <b id="shiftSel">' + okCount + '</b>개</div>' +
+          rows.map(function (r, i) {
+            var dateCell = r.ok
+              ? '<span class="sdate">' + esc(fmtShort(r.from)) + '<em>→ ' + esc(fmtShort(r.to)) + '</em></span>'
+              : '<span class="sdate">' + esc(fmtShort(r.from)) + '<em>배치 불가</em></span>';
+            var note = r.note ? '<span class="note">' + esc(r.note) + '</span>' : '';
+            return '<label class="srow' + (r.ok ? '' : ' bad') + '">' +
+              '<input type="checkbox" data-row="' + i + '"' + (r.checked ? ' checked' : '') + (r.ok ? '' : ' disabled') + '>' +
+              dateCell + '<span class="stitle">' + esc(r.title || '(제목 없음)') + note + '</span></label>';
+          }).join('');
+        applyBtn.disabled = okCount === 0;
+        applyBtn.textContent = '배치 적용 (' + okCount + '개)';
+      } else if (act === 'apply') {
+        var chosen = rows.filter(function (r) { return r.ok && r.checked; });
+        if (!chosen.length) { toast('배치할 기록을 선택해 주세요.'); return; }
+        var keep = $('#sKeep', ov).checked;
+        var before = state.events.slice();
+        var created = [];
+        chosen.forEach(function (r) {
+          var src = findEv(r.id);
+          if (!src) return;
+          var copy = normalize(clone(src));
+          copy.id = uid('e');
+          copy.date = r.to;
+          copy.done = false;
+          if (r.toEnd && src.end) copy.end = r.toEnd; else delete copy.end;
+          created.push(copy);
+        });
+        if (!keep) {
+          var ids = chosen.map(function (r) { return r.id; });
+          state.events = state.events.filter(function (ev) { return ids.indexOf(ev.id) < 0; });
+        }
+        state.events = state.events.concat(created);
+        if (created.length) {
+          var firstDate = created.map(function (c) { return c.date; }).sort()[0];
+          if (firstDate) ui.ym = ymOf(firstDate);
+        }
+        commit();
+        closeSheet(ov);
+        toast(created.length + '개를 옮겨 배치했습니다', function () {
+          state.events = before;
+          commit();
+        });
+      }
+    });
+
+    ov.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.name === 'smode') {
+        $$('.radio', ov).forEach(function (lab) {
+          lab.classList.toggle('on', lab.querySelector('input').checked);
+        });
+      }
+      if (t.hasAttribute('data-row')) {
+        var i = +t.getAttribute('data-row');
+        if (rows[i]) rows[i].checked = t.checked;
+        var sel = $('#shiftSel', ov);
+        if (sel) sel.textContent = rows.filter(function (r) { return r.ok && r.checked; }).length;
+        var applyBtn = ov.querySelector('[data-act="apply"]');
+        var n = rows.filter(function (r) { return r.ok && r.checked; }).length;
+        applyBtn.textContent = '배치 적용 (' + n + '개)';
+        applyBtn.disabled = n === 0;
+      }
+    });
+  }
+
+  /* ---------------- month picker ---------------- */
+  function pickerHtml(year) {
+    var counts = {};
+    state.events.forEach(function (e) { counts[ymOf(e.date)] = (counts[ymOf(e.date)] || 0) + 1; });
+    var cur = ui.ym;
+    var html = '<div class="sheet-top"><div class="grow"><p class="eyebrow">연월 선택</p>' +
+      '<h2 class="sheet-title">' + year + '년</h2></div>' +
+      '<button type="button" class="xbtn" data-act="close">✕</button></div><div class="sheet-body">' +
+      '<div class="mp-year"><button type="button" class="nav-btn" data-y="' + (year - 1) + '">‹</button>' +
+      '<b>' + year + '년</b><button type="button" class="nav-btn" data-y="' + (year + 1) + '">›</button></div>' +
+      '<div class="mp-grid">';
+    for (var m = 1; m <= 12; m++) {
+      var k = year + '-' + pad(m);
+      var on = k === cur;
+      var has = !!counts[k];
+      html += '<button type="button" class="' + (on ? 'on' : has ? 'has' : '') + '" data-m="' + k + '">' + m + '월' +
+        (has ? '<span style="display:block;font-size:10px;font-weight:600;opacity:.65">' + counts[k] + '</span>' : '') + '</button>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function openPicker() {
+    var year = +ui.ym.slice(0, 4);
+    var ov = openSheet(pickerHtml(year));
+    ov.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act], [data-m], [data-y]');
+      if (!b) return;
+      if (b.hasAttribute('data-y')) {
+        year = +b.getAttribute('data-y');
+        ov.querySelector('.sheet').innerHTML = pickerHtml(year);
+        return;
+      }
+      if (b.hasAttribute('data-m')) {
+        ui.ym = b.getAttribute('data-m');
+        if (ui.view === 'list') pendingListScroll = true;
+        saveState();
+        closeSheet(ov);
+        render();
+        return;
+      }
+      if (b.getAttribute('data-act') === 'close') closeSheet(ov);
+    });
+  }
+
+  /* ---------------- global events ---------------- */
+  function bind() {
+    $('#viewSeg').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-view]');
+      if (!b) return;
+      ui.view = b.getAttribute('data-view');
+      if (ui.view === 'list') pendingListScroll = true;
+      saveState();
+      render();
+    });
+
+    $('#btnPrev').addEventListener('click', function () { stepMonth(-1); });
+    $('#btnNext').addEventListener('click', function () { stepMonth(1); });
+    $('#btnToday').addEventListener('click', function () {
+      var t = ymOf(todayYmd());
+      ui.ym = t;
+      if (ui.view === 'list') pendingListScroll = true;
+      saveState();
+      render();
+      var cell = $('#grid .cell.today');
+      if (cell && cell.scrollIntoView) cell.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+    $('#btnMonthPick').addEventListener('click', openPicker);
+    $('#btnSettings').addEventListener('click', openSettings);
+    $('#btnAdd').addEventListener('click', function () {
+      var d = todayYmd();
+      if (ui.view === 'month' && ymOf(todayYmd()) !== ui.ym) d = ui.ym + '-01';
+      openEdit(null, null, d);
+    });
+
+    var searchTimer = null;
+    $('#searchInput').addEventListener('input', function (e) {
+      var v = e.target.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        ui.q = v.trim();
+        renderStatus();
+        renderChips();
+        if (ui.view === 'month') renderMonth(); else renderList();
+        $('#searchClear').hidden = !ui.q;
+      }, 120);
+    });
+    $('#searchInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.blur();
+        if (ui.q) { ui.view = 'list'; saveState(); render(); }
+      }
+      if (e.key === 'Escape') { ui.q = ''; e.target.value = ''; render(); }
+    });
+    $('#searchClear').addEventListener('click', function () {
+      ui.q = '';
+      $('#searchInput').value = '';
+      render();
+    });
+
+    $('#chips').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-tag], [data-chipmore]');
+      if (!b) return;
+      if (b.hasAttribute('data-chipmore')) { ui.chipsOpen = !ui.chipsOpen; renderChips(); return; }
+      var t = b.getAttribute('data-tag');
+      ui.tag = ui.tag === t ? '' : t;
+      render();
+    });
+
+    $('#btnHideDone').addEventListener('click', function () {
+      ui.hideDone = !ui.hideDone;
+      saveState();
+      render();
+    });
+
+    $('#btnSort').addEventListener('click', function () {
+      ui.sortAsc = !ui.sortAsc;
+      saveState();
+      render();
+    });
+
+    $('#grid').addEventListener('click', function (e) {
+      var chk = e.target.closest('[data-pchk]');
+      if (chk) { e.stopPropagation(); toggleDone(chk.getAttribute('data-pchk')); return; }
+      var pill = e.target.closest('[data-ev]');
+      if (pill) { openDetail(pill.getAttribute('data-ev')); return; }
+      var more = e.target.closest('[data-more]');
+      if (more) { openDay(more.getAttribute('data-more')); return; }
+      var cell = e.target.closest('[data-day]');
+      if (cell) openDay(cell.getAttribute('data-day'));
+    });
+
+    $('#list').addEventListener('click', function (e) {
+      var chk = e.target.closest('[data-chk]');
+      if (chk) {
+        e.stopPropagation();
+        toggleDone(chk.getAttribute('data-chk'));
+        return;
+      }
+      var row = e.target.closest('[data-ev]');
+      if (row) openDetail(row.getAttribute('data-ev'));
+    });
+
+    /* drag & drop (desktop) */
+    var dragId = null;
+    $('#grid').addEventListener('dragstart', function (e) {
+      var pill = e.target.closest('[data-ev]');
+      if (!pill) return;
+      dragId = pill.getAttribute('data-ev');
+      pill.classList.add('dragging');
+      try {
+        e.dataTransfer.setData('text/plain', dragId);
+        e.dataTransfer.effectAllowed = 'move';
+      } catch (err) {}
+    });
+    $('#grid').addEventListener('dragend', function (e) {
+      var pill = e.target.closest('[data-ev]');
+      if (pill) pill.classList.remove('dragging');
+      $$('.cell.drop').forEach(function (c) { c.classList.remove('drop'); });
+      dragId = null;
+    });
+    $('#grid').addEventListener('dragover', function (e) {
+      var cell = e.target.closest('[data-day]');
+      if (!cell || !dragId) return;
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'move'; } catch (err) {}
+      $$('.cell.drop').forEach(function (c) { if (c !== cell) c.classList.remove('drop'); });
+      cell.classList.add('drop');
+    });
+    $('#grid').addEventListener('dragleave', function (e) {
+      var cell = e.target.closest('[data-day]');
+      if (cell) cell.classList.remove('drop');
+    });
+    $('#grid').addEventListener('drop', function (e) {
+      var cell = e.target.closest('[data-day]');
+      if (!cell) return;
+      e.preventDefault();
+      cell.classList.remove('drop');
+      var id = dragId;
+      try {
+        var dt = e.dataTransfer.getData('text/plain');
+        if (dt) id = dt;
+      } catch (err) {}
+      if (!id) return;
+      var ev = findEv(id);
+      if (!ev) return;
+      var ds = cell.getAttribute('data-day');
+      if (ev.date === ds) return;
+      moveEvent(id, ds);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (modals.length) { e.preventDefault(); closeTop(); return; }
+        if (ui.q) { ui.q = ''; $('#searchInput').value = ''; render(); }
+        return;
+      }
+      var tag = (e.target && e.target.tagName) || '';
+      if (modals.length || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'ArrowLeft') stepMonth(-1);
+      else if (e.key === 'ArrowRight') stepMonth(1);
+      else if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openEdit(null, null, todayYmd()); }
+    });
+
+    var rTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(rTimer);
+      rTimer = setTimeout(function () { if (ui.view === 'month') renderMonth(); }, 160);
+    });
+
+    /* storage guard */
+    try {
+      localStorage.setItem('ljc_probe', '1');
+      localStorage.removeItem('ljc_probe');
+    } catch (e) {
+      storageOk = false;
+      toast('이 브라우저에서는 저장이 막혀 있어 변경이 유지되지 않을 수 있어요.');
+    }
+  }
+
+  function stepMonth(delta) {
+    var y = +ui.ym.slice(0, 4), m = +ui.ym.slice(5, 7);
+    var d = new Date(y, m - 1 + delta, 1, 12);
+    ui.ym = d.getFullYear() + '-' + pad(d.getMonth() + 1);
+    if (ui.view === 'list') pendingListScroll = true;
+    saveState();
+    render();
+  }
+
+  /* ---------------- boot ---------------- */
+  rebuildIndex();
+  bind();
+  render();
+
+  try {
+    if (!localStorage.getItem('ljc_onboarded')) {
+      localStorage.setItem('ljc_onboarded', '1');
+      setTimeout(function () {
+        toast('기록 ' + state.events.length + '개를 불러왔습니다. 항목을 눌러 보세요.');
+      }, 700);
+    }
+  } catch (e) {}
+
+  var savedNote = localStorage.getItem(STORE_KEY);
+  if (savedNote) {
+    try {
+      var snap = JSON.parse(savedNote);
+      if (snap && snap.savedAt) {
+        var dt = new Date(snap.savedAt);
+        if (!isNaN(dt.getTime())) {
+          // 아주 오래된 스냅샷이면 조용히 알린다 (7일 이상)
+          if (Date.now() - dt.getTime() > 7 * 86400000) {
+            toast('이 기기에 저장된 편집본을 불러왔습니다 (' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' 저장)');
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  /* test hook */
+  window.__ljc = {
+    state: state,
+    ui: ui,
+    get events() { return state.events; },
+    findEv: findEv,
+    render: render,
+    openDetail: openDetail,
+    openEdit: openEdit,
+    openDay: openDay,
+    openSettings: openSettings,
+    openShift: openShift,
+    openPicker: openPicker,
+    shiftDate: shiftDate,
+    exportJson: exportJson,
+    importJson: importJson,
+    visibleEvents: visibleEvents,
+    todayYmd: todayYmd,
+    INITIAL: INITIAL
+  };
+})();
+
+</script>
+<script>
+/* 공개 배포용 껍데기(shell) 동작
+   - 앱 본체(app.js)는 그대로 두고, 첫 설치 안내와 빈 상태 안내만 덧붙인다.
+   - 기록은 전부 이 기기(localStorage)에만 있고, 서버·저장소에는 아무것도 없다. */
+(function () {
+  'use strict';
+  var L = window.__ljc;
+  var banner = document.getElementById('ljcBanner');
+  var DISMISS = 'ljc_shell_banner_off';
+  var dismissed = false;
+  try { dismissed = localStorage.getItem(DISMISS) === '1'; } catch (e) {}
+
+  function isEmpty() {
+    try { return !(L && L.state && L.state.events && L.state.events.length); } catch (e) { return true; }
+  }
+
+  function sync() {
+    var empty = isEmpty();
+    if (banner) banner.hidden = !(empty && !dismissed);
+  }
+
+  function closeBanner() {
+    dismissed = true;
+    try { localStorage.setItem(DISMISS, '1'); } catch (e) {}
+    sync();
+  }
+
+  function openImport() {
+    if (L && typeof L.importJson === 'function') { L.importJson(); return; }
+    if (L && typeof L.openSettings === 'function') L.openSettings();
+  }
+
+  function openSettings() {
+    if (L && typeof L.openSettings === 'function') L.openSettings();
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-ljc]');
+    if (!b) return;
+    var act = b.getAttribute('data-ljc');
+    if (act === 'close') closeBanner();
+    else if (act === 'import') openImport();
+    else if (act === 'settings') openSettings();
+  });
+
+  // 달력·목록을 다시 그릴 때마다(불러오기·추가·삭제 포함) 빈 상태를 갱신한다.
+  ['grid', 'list'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && window.MutationObserver) {
+      new MutationObserver(sync).observe(el, { childList: true });
+    }
+  });
+  window.addEventListener('pageshow', sync);
+  document.addEventListener('visibilitychange', sync);
+  setTimeout(sync, 0);
+  setTimeout(sync, 600);
+  sync();
+})();
+
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
